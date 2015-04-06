@@ -1,3 +1,3 @@
 rootProject.name = 'kommon'
 
-include 'konfig'
+include 'basiks', 'konfig'

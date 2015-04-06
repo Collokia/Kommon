@@ -79,7 +79,7 @@ subprojects {
     publishing {
         publications {
             maven(MavenPublication) {
-                group = "com.collokia.kotlin"
+//                group = "com.collokia.kotlin.kommon"
                 from components.java
 
                 artifact sourceJar {
