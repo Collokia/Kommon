@@ -34,21 +34,26 @@ subprojects {
 
     build.dependsOn sourceJar, javadocJar
 
+    //noinspection GroovyAssignabilityCheck
     dependencies {
+        compile "com.google.guava:guava:$version_guava"
+
         provided "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
         provided "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-        provided "org.slf4j:slf4j-api:${version_slf4j}"
-        
+        provided "org.slf4j:slf4j-api:$version_slf4j"
+
         testRuntime "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
         testRuntime "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-        testCompile "org.slf4j:slf4j-api:${version_slf4j}"
-        testCompile "junit:junit:$junitVersion"
+        testCompile "org.slf4j:slf4j-api:$version_slf4j"
 
-        testRuntime "ch.qos.logback:logback-classic:${version_logback}"
-        testRuntime "ch.qos.logback:logback-access:${version_logback}"
-        testRuntime "org.slf4j:jcl-over-slf4j:${version_slf4j}"
-        testRuntime "org.slf4j:jul-to-slf4j:${version_slf4j}"
-        testRuntime "org.slf4j:log4j-over-slf4j:${version_slf4j}"
+        testCompile "junit:junit:$version_junit"
+        testCompile "com.google.truth:truth:$version_truth"
+
+        testRuntime "ch.qos.logback:logback-classic:$version_logback"
+        testRuntime "ch.qos.logback:logback-access:$version_logback"
+        testRuntime "org.slf4j:jcl-over-slf4j:$version_slf4j"
+        testRuntime "org.slf4j:jul-to-slf4j:$version_slf4j"
+        testRuntime "org.slf4j:log4j-over-slf4j:$version_slf4j"
     }
 
     repositories {
