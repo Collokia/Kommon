@@ -1,5 +1,5 @@
 //noinspection GroovyAssignabilityCheck
 dependencies {
     compile relativeProject(":basiks")
-    compile "com.typesafe:config:${version_typesafe_config}"
+    compile "com.netflix.nfgraph:netflix-graph:$version_nfgraph"
 }
