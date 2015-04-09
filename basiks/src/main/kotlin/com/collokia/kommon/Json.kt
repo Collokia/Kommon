@@ -92,12 +92,19 @@ class JsonValue internal (val value: Any) : JsonElement {
     }
 }
 
+class JsonRawValue internal (val rawJson: String) : JsonElement {
+    override fun build(builder: StringBuilder) {
+        builder.append(rawJson)
+    }
+}
+
 fun JsonArray.jsonValue(value: String) = add(jsonString(value))
 fun JsonArray.jsonValue(value: Number) = add(JsonValue(value))
 fun JsonArray.jsonValue(value: Boolean) = add(JsonValue(value))
 fun JsonObject.jsonValue(name: String, value: String) = put(name, jsonString(value))
 fun JsonObject.jsonValue(name: String, value: Number) = put(name, JsonValue(value))
 fun JsonObject.jsonValue(name: String, value: Boolean) = put(name, JsonValue(value))
+fun JsonObject.jsonValueAsRawJson(name: String, rawJson: String) = put(name, JsonRawValue(rawJson))
 
 inline fun JsonArray.jsonObject(body: JsonObject.() -> Unit) {
     val value = JsonObject()
