@@ -42,6 +42,7 @@ enum class RelationStructure(override val flags: Int) : GraphRelationOptions {
     HASH : RelationStructure(com.netflix.nfgraph.spec.NFPropertySpec.HASH)
 }
 
+// TODO: is this wording backwards?  ONE_TO_MANY is one forward connection, many backward connections
 enum class BidirectionRelation(val fowardFlags: GraphRelationOptions, val backwardFlags: GraphRelationOptions) {
     ONE_TO_MANY : BidirectionRelation(RelationCardinality.SINGLE, RelationCardinality.MULTIPLE)
     MANY_TO_MANY : BidirectionRelation(RelationCardinality.MULTIPLE, RelationCardinality.MULTIPLE)
@@ -66,74 +67,96 @@ public class GraphSchema(private val defaultCardinality: BidirectionRelation = B
         nodeMap.putAll(nodes.map { Pair(it.name(), it) })
     }
 
-    public fun GraphSchema.node(node: GraphNodeType): GraphRelationBuilder {
-        nodeMap.put(node.name(), node)
-        return GraphRelationBuilder(node)
+    public fun GraphSchema.from(nodeType: GraphNodeType): GraphRelationBuilder {
+        nodeMap.put(nodeType.name(), nodeType)
+        return GraphRelationBuilder(nodeType)
     }
 
     inner class GraphRelationBuilder(internal val fromNode: GraphNodeType) {
         internal var forwardRelation: GraphRelationType by Delegates.notNull()
-        internal var forwardFlags: GraphRelationOptions = TempGraphFlags(0)
+        internal var forwardFlags: GraphRelationOptions = defaultScope + defaultStructure
         internal var backwardRelation: GraphRelationType? = null
-        internal var backwardFlags: GraphRelationOptions = TempGraphFlags(0)
+        internal var backwardFlags: GraphRelationOptions = defaultScope + defaultStructure
         internal var toNode: GraphNodeType by Delegates.notNull()
 
-        public fun connects(forwardRelation: GraphRelationType, cardinality: BidirectionRelation = defaultCardinality, backwardRelation: GraphRelationType? = null): GraphRelationPredicateTo {
-            this.forwardRelation = forwardRelation
-            this.backwardRelation = backwardRelation
-            this.forwardFlags = defaultScope + defaultStructure + cardinality.fowardFlags
-            this.backwardFlags = defaultScope + defaultStructure + cardinality.backwardFlags
-            return GraphRelationPredicateTo()
+        public fun edge(forwardRelation: GraphRelationType): GraphRelationPredicateEdge {
+            this@GraphRelationBuilder.forwardRelation = forwardRelation
+            return GraphRelationPredicateEdge()
         }
 
-        public fun connects(forwardRelation: GraphRelationType, backwardRelation: GraphRelationType): GraphRelationPredicateTo {
-            this.forwardRelation = forwardRelation
-            this.backwardRelation = backwardRelation
-            this.forwardFlags = defaultScope + defaultStructure + defaultCardinality.fowardFlags
-            this.backwardFlags = defaultScope + defaultStructure + defaultCardinality.backwardFlags
-            return GraphRelationPredicateTo()
-        }
+        inner class GraphRelationPredicateEdge() {
+           public fun toOne(nodeType: GraphNodeType): GraphRelationPredicateNoBackwards {
+               setToNode(nodeType)
+               this@GraphRelationBuilder.forwardFlags = this@GraphRelationBuilder.forwardFlags - RelationCardinality.MULTIPLE + RelationCardinality.SINGLE
+               return GraphRelationPredicateNoBackwards()
+           }
 
-        inner class GraphRelationPredicateTo() {
-            public fun to(node: GraphNodeType): GraphRelationPredicateExtras {
-                this@GraphSchema.nodeMap.put(node.name(), node)
-                this@GraphRelationBuilder.toNode = node
-                this@GraphSchema.relations.add(this@GraphRelationBuilder)
-                return GraphRelationPredicateExtras()
+            public fun toMany(nodeType: GraphNodeType): GraphRelationPredicateNoBackwards {
+                setToNode(nodeType)
+                this@GraphRelationBuilder.forwardFlags = this@GraphRelationBuilder.forwardFlags - RelationCardinality.SINGLE + RelationCardinality.MULTIPLE
+                return GraphRelationPredicateNoBackwards()
             }
 
-            inner class GraphRelationPredicateExtras() {
-                public fun globalScope(): GraphRelationPredicateExtras {
+            private fun setToNode(nodeType: GraphNodeType) {
+                this@GraphRelationBuilder.toNode = nodeType
+                this@GraphSchema.nodeMap.put(nodeType.name(), nodeType)
+                this@GraphSchema.relations.add(this@GraphRelationBuilder)
+            }
+
+           inner class GraphRelationPredicateNoBackwards {
+                public fun globalScope(): GraphRelationPredicateNoBackwards {
                     this@GraphRelationBuilder.forwardFlags = this@GraphRelationBuilder.forwardFlags - RelationScope.MODEL + RelationScope.GLOBAL
-                    this@GraphRelationBuilder.backwardFlags = this@GraphRelationBuilder.backwardFlags - RelationScope.MODEL + RelationScope.GLOBAL
                     return this
                 }
 
-                public fun modelScope(): GraphRelationPredicateExtras {
+                public fun modelScope(): GraphRelationPredicateNoBackwards {
                     this@GraphRelationBuilder.forwardFlags = this@GraphRelationBuilder.forwardFlags - RelationScope.GLOBAL + RelationScope.MODEL
-                    this@GraphRelationBuilder.backwardFlags = this@GraphRelationBuilder.backwardFlags - RelationScope.GLOBAL + RelationScope.MODEL
                     return this
                 }
 
-                public fun forwardIsCompact(): GraphRelationPredicateExtras {
+                public fun compact(): GraphRelationPredicateNoBackwards {
                     this@GraphRelationBuilder.forwardFlags = this@GraphRelationBuilder.forwardFlags - RelationStructure.HASH + RelationStructure.COMPACT
                     return this
                 }
 
-                public fun backwardIsCompact(): GraphRelationPredicateExtras {
-                    this@GraphRelationBuilder.backwardFlags = this@GraphRelationBuilder.backwardFlags - RelationStructure.HASH + RelationStructure.COMPACT
-                    return this
-                }
-
-                public fun forwardIsHashed(): GraphRelationPredicateExtras {
+                public fun hashed(): GraphRelationPredicateNoBackwards {
                     this@GraphRelationBuilder.forwardFlags = this@GraphRelationBuilder.forwardFlags - RelationStructure.COMPACT + RelationStructure.HASH
                     return this
                 }
 
-                public fun backwardIsHashed(): GraphRelationPredicateExtras {
-                    this@GraphRelationBuilder.backwardFlags = this@GraphRelationBuilder.backwardFlags - RelationStructure.COMPACT + RelationStructure.HASH
-                    return this
+                public fun oneEdgeBack(backRelation: GraphRelationType): GraphRelationPredicateWithBackEdge {
+                    this@GraphRelationBuilder.backwardRelation = backRelation
+                    this@GraphRelationBuilder.backwardFlags = this@GraphRelationBuilder.backwardFlags - RelationCardinality.MULTIPLE + RelationCardinality.SINGLE
+                    return GraphRelationPredicateWithBackEdge()
                 }
+
+                public fun manyEdgesBack(backRelation: GraphRelationType): GraphRelationPredicateWithBackEdge {
+                    this@GraphRelationBuilder.backwardRelation = backRelation
+                    this@GraphRelationBuilder.backwardFlags = this@GraphRelationBuilder.backwardFlags - RelationCardinality.SINGLE + RelationCardinality.MULTIPLE
+                    return GraphRelationPredicateWithBackEdge()
+                }
+
+               inner class GraphRelationPredicateWithBackEdge {
+                   public fun globalScope(): GraphRelationPredicateWithBackEdge {
+                       this@GraphRelationBuilder.backwardFlags = this@GraphRelationBuilder.backwardFlags - RelationScope.MODEL + RelationScope.GLOBAL
+                       return this
+                   }
+
+                   public fun modelScope(): GraphRelationPredicateWithBackEdge {
+                       this@GraphRelationBuilder.backwardFlags = this@GraphRelationBuilder.backwardFlags - RelationScope.GLOBAL + RelationScope.MODEL
+                       return this
+                   }
+
+                   public fun compact(): GraphRelationPredicateWithBackEdge {
+                       this@GraphRelationBuilder.backwardFlags = this@GraphRelationBuilder.backwardFlags - RelationStructure.HASH + RelationStructure.COMPACT
+                       return this
+                   }
+
+                   public fun hashed(): GraphRelationPredicateWithBackEdge {
+                       this@GraphRelationBuilder.backwardFlags = this@GraphRelationBuilder.backwardFlags - RelationStructure.COMPACT + RelationStructure.HASH
+                       return this
+                   }
+               }
 
             }
         }

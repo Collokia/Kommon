@@ -11,6 +11,7 @@ import com.collokia.kommon.nfgraph.MyNodes.*
 import com.collokia.kommon.nfgraph.MyRelations.*
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import kotlin.test.fail
 
 
 enum class MyNodes : GraphNodeType {
@@ -25,6 +26,8 @@ enum class MyRelations: GraphRelationType {
     TaggedSOPost
     TaggedWebPage
     TaggedMavenGA
+    TagWiki
+    OwnedByTag
 }
 
 public class TestNfGraph {
@@ -33,10 +36,10 @@ public class TestNfGraph {
         val schema = defineGraphSchema(BidirectionRelation.MANY_TO_MANY, RelationStructure.COMPACT) {
             nodesFrom(MyNodes.values())
 
-            node(MyNodes.SOTag).connects(MyRelations.TaggedSOPost, MyRelations.TaggedWith).to(MyNodes.SOPost)
-            node(MyNodes.SOTag).connects(MyRelations.TaggedWebPage, MyRelations.TaggedWith).to(MyNodes.WebPage)
-            node(MyNodes.SOTag).connects(MyRelations.TaggedMavenGA, MyRelations.TaggedWith).to(MyNodes.MavenGA)
-
+            from(SOTag).edge(TaggedSOPost).toMany(SOPost).manyEdgesBack(TaggedWith)
+            from(SOTag).edge(TaggedWebPage).toMany(WebPage).manyEdgesBack(TaggedWith)
+            from(SOTag).edge(TaggedMavenGA).toMany(MavenGA).manyEdgesBack(TaggedWith)
+            from(SOTag).edge(TagWiki).toOne(SOPost).oneEdgeBack(OwnedByTag)
         }
 
         val builder = constructGraph(schema) {
@@ -45,6 +48,15 @@ public class TestNfGraph {
 
             connect(SOPost["3"], TaggedWith, SOTag["java"])
             connect(SOPost["3"], TaggedWith, SOTag["scala"])
+
+            connect(SOTag["java"], TagWiki, SOPost["99"])
+            try {
+                connect(SOTag["java"], TagWiki, SOPost["100"])
+                fail("Should not be able to add a second tag when cardinality is 1")
+            }
+            catch (ex: Throwable) {
+                // continue
+            }
         }
 
         val outputBuffer = ByteArrayOutputStream()
