@@ -32,6 +32,11 @@ public class JsonRoot internal (): JsonElement {
     private var _element : JsonElement? = null
     fun set(element : JsonElement) { _element = element }
     override fun build(builder: StringBuilder) = _element?.build(builder)
+    override fun toString(): String {
+        val buffer = StringBuilder()
+        build(buffer)
+        return buffer.toString()
+    }
 }
 
 class JsonArray internal () : JsonElement {
