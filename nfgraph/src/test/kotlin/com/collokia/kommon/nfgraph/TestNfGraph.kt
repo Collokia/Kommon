@@ -1,19 +1,14 @@
 package com.collokia.kommon.nfgraph
 
-import org.junit.Test
-import com.netflix.nfgraph.OrdinalIterator
-import com.netflix.nfgraph.compressed.NFCompressedGraph
-import kotlin.support.AbstractIterator
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
-import com.collokia.kommon.testing
 import com.collokia.kommon.nfgraph.MyNodes.*
 import com.collokia.kommon.nfgraph.MyRelations.*
 import com.collokia.kommon.nfgraph.internal.NodeAndId
 import com.collokia.kommon.nfgraph.internal.RelationStructure
+import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import kotlin.test.fail
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 
 enum class MyNodes {
@@ -21,7 +16,6 @@ enum class MyNodes {
     Actor
     Director
     Award
-
 }
 
 enum class MyRelations {
@@ -34,8 +28,6 @@ enum class MyRelations {
 }
 
 public class TestNfGraph {
-
-
     private fun Set<NodeAndId<MyNodes>>.hasOnly(testFor: Set<NodeAndId<MyNodes>>): Boolean {
         return (this.size() == testFor.size() && this.containsAll(testFor))
     }
@@ -87,7 +79,6 @@ public class TestNfGraph {
             connect(Movie["Indiana Jones"], WonAward, Award["People's Choice Award"])
         }
 
-
         // serialize so we test end to end
         val outputBuffer = ByteArrayOutputStream()
         builder.serialize(outputBuffer)
@@ -109,6 +100,5 @@ public class TestNfGraph {
 
             assertTrue(Award["People's Choice Award"].getConnections(AwardWinner).hasOnly(setOf(Movie("Star Wars"), Movie("Indiana Jones"), Director("Steven Spielberg"), Actor("Harrison Ford"))))
         }
-
     }
 }
