@@ -83,8 +83,29 @@ public class CompiledGraphSchema<N : Enum<N>, R : Enum<R>>(val schema: GraphSche
     }
 }
 
+internal class GraphBuilderTempStep1<N : Enum<N>, R : Enum<R>>(val fromNodeWithOrd: NodeAndOrd<N>, val completr: (NodeAndOrd<N>,R,NodeAndOrd<N>)->Unit) {
+    public fun edge(relation: R): GraphBuilderTempStep2<N,R> {
+        return GraphBuilderTempStep2<N, R>(fromNodeWithOrd, relation, completr)
+    }
+}
+
+internal class GraphBuilderTempStep2<N : Enum<N>, R : Enum<R>>(val fromNodeWithOrd: NodeAndOrd<N>, val relation: R, val completr: (NodeAndOrd<N>,R,NodeAndOrd<N>)->Unit) {
+    public fun to(toNodeWithOrd: NodeAndOrd<N>): Unit {
+        completr(fromNodeWithOrd, relation, toNodeWithOrd)
+    }
+}
+
+
 class GraphBuilder<N : Enum<N>, R : Enum<R>>(val schema: CompiledGraphSchema<N, R>) : GraphOrdinalContainer<N>(false) {
     private val graphBuilder = NFBuildGraph(schema.graphSpec)
+
+    public fun connect(fromNodeWithOrd: NodeAndOrd<N>): GraphBuilderTempStep1<N,R> {
+       return GraphBuilderTempStep1<N,R>(fromNodeWithOrd, { f,r,t -> connect(f,r,t) })
+    }
+
+    public fun connect(fromNodeWithId: NodeAndId<N>, relation: R, toNodeWithId: NodeAndId<N>) {
+        connect(fromNodeWithId.toNord(), relation, toNodeWithId.toNord())
+    }
 
     public fun connect(fromNodeWithOrd: NodeAndOrd<N>, relation: R, toNodeWithOrd: NodeAndOrd<N>) {
         val forward = connectInternal(fromNodeWithOrd, relation, toNodeWithOrd)

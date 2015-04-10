@@ -42,17 +42,18 @@ public class TestNfGraph {
 
     [Test] fun basicGraphBuilding() {
         val schema = defineGraphSchema<MyNodes, MyRelations>(RelationStructure.COMPACT) {
-            // maybe syntax like
+            // TODO: maybe syntax like
             //    Movie[Starring]..Actor[StarredIn]
             // need to be able to show many versus single in other syntax
 
-            from(Movie).connectEdges(Starring).target(Actor).autoMirrorEdges(StarredIn)
-            from(Movie).connectOneEdge(DirectedBy).target(Director).autoMirrorEdges(Directed)
-            from(Movie).connectEdges(WonAward).target(Award).hashed().autoMirrorEdges(AwardWinner).compact()
-            from(Actor).connectEdges(WonAward).target(Award).autoMirrorEdges(AwardWinner)  // we support duplicate relations A->R->B and A->R->C by creating A->R.B->B and A->R.C->C under the covers
-            from(Director).connectEdges(WonAward).target(Award).autoMirrorEdges(AwardWinner)
+            from(Movie).connectEdges(Starring).to(Actor).autoMirrorEdges(StarredIn)
+            from(Movie).connectOneEdge(DirectedBy).to(Director).autoMirrorEdges(Directed)
 
-            // TODO: check dupes overwriting with same settings
+            // we support duplicate relations A->R->B and A->R->C by creating A->R.B->B and A->R.C->C under the covers
+            // here, from the perspective of Award, it has three possible WonAward relations all with same name
+            from(Movie).connectEdges(WonAward).to(Award).hashed().autoMirrorEdges(AwardWinner).compact()
+            from(Actor).connectEdges(WonAward).to(Award).autoMirrorEdges(AwardWinner)
+            from(Director).connectEdges(WonAward).to(Award).autoMirrorEdges(AwardWinner)
 
             modelScope() {
                 // TODO: test relationships in model scope
@@ -60,10 +61,17 @@ public class TestNfGraph {
         }
 
         val builder = constructGraph(schema) {
-            connect(Movie["Star Wars"], Starring, Actor["Harrison Ford"])
-            connect(Movie["Star Wars"], Starring, Actor["Mark Hamill"])
-            connect(Movie["Star Wars"], Starring, Actor["Carrie Fisher"])
-            connect(Movie["Star Wars"], Starring, Actor["Peter Mayhew"])
+            // TODO: maybe syntax options like
+            //     Move["Star Wars"]..Starring..Actor["Harrison Ford"]
+            //     Move["Star Wars"] - Starring - Actor["Harrison Ford"]
+            //     Move["Star Wars"] + Starring + Actor["Harrison Ford"]
+
+            connect(Movie["Star Wars"]).edge(Starring).to(Actor["Harrison Ford"])
+            connect(Movie["Star Wars"]).edge(Starring).to(Actor["Mark Hamill"])
+            connect(Movie["Star Wars"]).edge(Starring).to(Actor["Carrie Fisher"])
+            connect(Movie["Star Wars"]).edge(Starring).to(Actor["Peter Mayhew"])
+
+            // less objects created version of syntax...
             connect(Movie["Star Wars"], DirectedBy, Director["George Lucas"])
             connect(Movie["Star Wars"], WonAward, Award["1979 Academy Award for Best Visual Effects"])
             connect(Movie["Star Wars"], WonAward, Award["1979 Academy Award for Best Original Music Score"])

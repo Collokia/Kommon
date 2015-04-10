@@ -117,7 +117,7 @@ internal class GraphRelationBuilder<N : Enum<N>, R : Enum<R>>(internal val relat
 }
 
 internal class GraphRelationPredicateEdge<N : Enum<N>, R : Enum<R>>(private val builder: GraphRelationBuilder<N, R>) {
-    public fun target(nodeType: N): GraphRelationPredicateNoBackwards<N, R> {
+    public fun to(nodeType: N): GraphRelationPredicateNoBackwards<N, R> {
         builder.toNode = nodeType
         builder.completeEnough()
         return GraphRelationPredicateNoBackwards<N, R>(builder)
