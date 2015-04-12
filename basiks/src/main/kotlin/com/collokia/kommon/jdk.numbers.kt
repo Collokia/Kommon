@@ -1,5 +1,7 @@
 package com.collokia.kommon.jdk.numbers
 
+import java.text.DecimalFormat
+
 public fun Int.minimum(minVal: Int): Int = Math.max(this, minVal)
 public fun Int.maximum(maxVal: Int): Int = Math.min(this, maxVal)
 public fun Int.coerce(minVal: Int, maxVal: Int): Int = this.minimum(minVal).maximum(maxVal)
@@ -24,3 +26,14 @@ public fun Double.minimum(minVal: Double): Double = Math.max(this, minVal)
 public fun Double.maximum(maxVal: Double): Double = Math.min(this, maxVal)
 public fun Double.coerce(minVal: Double, maxVal: Double): Double = this.minimum(minVal).maximum(maxVal)
 public fun Double.coerce(range: DoubleRange): Double = this.minimum(range.start).maximum(range.end)
+
+public fun Long.humanReadonable(): String {
+    if (this <= 0) return "0"
+    val units = array("B", "KB", "MB", "GB", "TB", "EB")
+    val digitGroups = (Math.log10(this.toDouble())/Math.log10(1024.0)).toInt();
+    return DecimalFormat("#,##0.#").format(this/Math.pow(1024.0, digitGroups.toDouble())) + " " + units[digitGroups];
+}
+
+public fun Int.humanReadonable(): String {
+    return this.toLong().humanReadonable()
+}
