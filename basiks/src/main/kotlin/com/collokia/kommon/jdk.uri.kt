@@ -32,6 +32,18 @@ public fun buildUri(url: URL, init: UriBuilder.() -> Unit = {}): UriBuilder {
     return buildUri(url.toURI(), init)
 }
 
+public fun buildUri(uri: UriBuilder, init: UriBuilder.() -> Unit = {}): UriBuilder {
+    return UriBuilder {
+        scheme = uri.scheme
+        userInfo = uri.userInfo
+        host = uri.host
+        port = uri.port
+        encodedPath = uri.encodedPath
+        query.putAll(uri.query)
+        fragment = uri.fragment
+        init()
+    }
+}
 
 class UriBuilder(init: UriBuilder.() -> Unit = {}) {
     var scheme: String by Delegates.notNull()
@@ -65,6 +77,15 @@ class UriBuilder(init: UriBuilder.() -> Unit = {}) {
 
     fun clearParams(): UriBuilder {
         query.clear()
+        return this
+    }
+
+    fun clearQuery(): UriBuilder {
+        return clearParams()
+    }
+
+    fun clearFragment(): UriBuilder {
+        fragment = null
         return this
     }
 

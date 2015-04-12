@@ -44,5 +44,42 @@ public fun String.mustNotStartWith(prefix: Char): String {
   }
 }
 
+public fun String.mustNotEndWith(postfix: Char): String {
+  return if (!this.endsWith(postfix)) {
+    this
+  }
+  else {
+    this.exceptLast()
+  }
+}
+
+public fun String.mustNotEndWith(postfix: String): String {
+  return if (!this.endsWith(postfix)) {
+    this
+  }
+  else {
+    this.exceptEnding(postfix.length())
+  }
+}
 
 public fun String?.isNotTrimmedEmpty(): Boolean = (this ?: "").trim().isNotEmpty()
+
+
+inline public fun String.whenStartsWith(prefix: String, thenWithRest: (String)->Unit): Boolean {
+  if (this.startsWith(prefix)) {
+    thenWithRest(this.exceptStarting(prefix.length()))
+    return true
+  }
+  return false
+}
+
+
+inline public fun String.whenStartsWith(prefixes: List<String>, thenWithRest: (String)->Unit): Boolean {
+  prefixes.forEach { prefix ->
+    if (this.startsWith(prefix)) {
+      thenWithRest(this.exceptStarting(prefix.length()))
+      return@whenStartsWith true
+    }
+  }
+  return false
+}
