@@ -11,7 +11,8 @@ public fun Config.render(): String = this.root().render()
 
 public class ConfiguredValue(val cfg: Config, val key: String) {
     fun asPath(): Path = Paths.get(cfg.getString(key).trim()).toAbsolutePath()
-    fun asPath(relativeTo: Path): Path = relativeTo.resolveSibling(cfg.getString(key).trim()).toAbsolutePath()
+    fun asPath(relativeTo: Path): Path = relativeTo.resolve(cfg.getString(key).trim()).toAbsolutePath()
+    fun asPathSibling(relativeTo: Path): Path = relativeTo.resolveSibling(cfg.getString(key).trim()).toAbsolutePath()
 
     fun asString(): String = cfg.getString(key).trim()
     fun asBoolean(): Boolean = cfg.getBoolean(key)
