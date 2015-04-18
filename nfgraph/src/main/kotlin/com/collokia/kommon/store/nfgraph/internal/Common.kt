@@ -1,4 +1,4 @@
-package com.collokia.kommon.nfgraph.internal
+package com.collokia.kommon.store.nfgraph.internal
 
 private data class RelationshipPairKey<N : Enum<N>, R : Enum<R>>(val fromNode: N, val relationship: R)
 private data class RelationshipTrippleKey<N : Enum<N>, R : Enum<R>>(val fromNode: N, val relationship: R, val toNode: N)

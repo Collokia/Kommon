@@ -1,6 +1,6 @@
-package com.collokia.kommon.nfgraph
+package com.collokia.kommon.store.nfgraph
 
-import com.collokia.kommon.nfgraph.internal.*
+import com.collokia.kommon.store.nfgraph.internal.*
 import com.netflix.nfgraph.NFGraph
 import com.netflix.nfgraph.OrdinalIterator
 import com.netflix.nfgraph.build.NFBuildGraph

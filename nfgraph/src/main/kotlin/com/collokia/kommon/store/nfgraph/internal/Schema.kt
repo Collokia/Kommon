@@ -1,4 +1,4 @@
-package com.collokia.kommon.nfgraph.internal
+package com.collokia.kommon.store.nfgraph.internal
 
 import kotlin.properties.Delegates
 

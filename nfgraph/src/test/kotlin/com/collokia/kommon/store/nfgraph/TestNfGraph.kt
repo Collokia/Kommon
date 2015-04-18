@@ -1,9 +1,9 @@
-package com.collokia.kommon.nfgraph
+package com.collokia.kommon.store.nfgraph
 
-import com.collokia.kommon.nfgraph.MyNodes.*
-import com.collokia.kommon.nfgraph.MyRelations.*
-import com.collokia.kommon.nfgraph.internal.NodeAndId
-import com.collokia.kommon.nfgraph.internal.RelationStructure
+import com.collokia.kommon.store.nfgraph.MyNodes.*
+import com.collokia.kommon.store.nfgraph.MyRelations.*
+import com.collokia.kommon.store.nfgraph.internal.NodeAndId
+import com.collokia.kommon.store.nfgraph.internal.RelationStructure
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
