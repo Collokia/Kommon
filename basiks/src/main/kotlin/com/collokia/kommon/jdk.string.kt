@@ -62,6 +62,22 @@ public fun String.mustNotEndWith(postfix: String): String {
   }
 }
 
+public fun String.mustEndWith(postfix: String): String {
+  return if (this.endsWith(postfix)) {
+    this
+  } else {
+    this + postfix
+  }
+}
+
+public fun String.mustEndWith(postfix: Char): String {
+  return if (this.endsWith(postfix)) {
+    this
+  } else {
+    this + postfix
+  }
+}
+
 public fun String?.isNotTrimmedEmpty(): Boolean = (this ?: "").trim().isNotEmpty()
 
 
