@@ -99,3 +99,6 @@ inline public fun String.whenStartsWith(prefixes: List<String>, thenWithRest: (S
   }
   return false
 }
+
+public fun String?.nullIfEmpty(): String? = if (this == null || this.isEmpty()) null else this
+public fun String?.emptyIfNull(): String = if (this == null) "" else this
