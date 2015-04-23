@@ -118,6 +118,11 @@ class UriBuilder(init: UriBuilder.() -> Unit = {}) {
         return this
     }
 
+    fun setPort(port: Int): UriBuilder {
+        this.port = port
+        return this
+    }
+
     fun setEncodedPath(path: String): UriBuilder {
         this.encodedPath = path
         return this
