@@ -18,9 +18,13 @@ public class ConfiguredValue(val cfg: Config, val key: String) {
     fun asBoolean(): Boolean = cfg.getBoolean(key)
     fun asInt(): Int = cfg.getInt(key)
     fun asStringList(): List<String> = cfg.getStringList(key)
+    fun asIntList(): List<Int> = cfg.getIntList(key)
     fun asStringArray(): Array<String> = cfg.getStringList(key).copyToArray()
+    fun asIntArray(): Array<Int> = cfg.getIntList(key).copyToArray()
     fun asDefaultedStringList(default: List<String>): List<String> = if (exists()) asStringList() else default
-    fun asGuaranteedStringList(): List<String> = if (exists()) asStringList() else listOf()
+    fun asDefaultedIntList(default: List<Int>): List<Int> = if (exists()) asIntList() else default
+    fun asGuaranteedStringList(): List<String> = if (exists()) asStringList() else emptyList()
+    fun asGuaranteedIntList(): List<Int> = if (exists()) asIntList() else emptyList()
 
     fun isZero(): Boolean = asInt() == 0
 
