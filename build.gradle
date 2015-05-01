@@ -66,6 +66,7 @@ subprojects {
         }
     }
 
+    //noinspection GroovyAssignabilityCheck
     configurations.all {
         exclude group: "org.slf4j", module: "slf4j-simple"
         exclude group: "commons-logging"
@@ -84,7 +85,6 @@ subprojects {
     publishing {
         publications {
             maven(MavenPublication) {
-//                group = "com.collokia.kotlin.kommon"
                 from components.java
 
                 artifact sourceJar {
