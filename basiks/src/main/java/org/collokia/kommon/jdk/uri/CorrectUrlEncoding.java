@@ -147,8 +147,8 @@ public class CorrectUrlEncoding {
     }
 
     /**
-     * pchar = unreserved | escaped | ":" | "@" | "&" | "=" | "+" | "$" | ","
-     * <p/>
+     * pchar = unreserved | escaped | ":" | "@" | "&amp;" | "=" | "+" | "$" | ","
+     *
      * Note: we don't allow escaped here since we will escape it ourselves, so we don't want to allow them in the
      * unescaped sequences
      */
