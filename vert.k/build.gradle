@@ -4,5 +4,5 @@ dependencies {
     compile "io.vertx:vertx-rx:${version_vertx}"
 
     provided "io.vertx:vertx-hazelcast:${version_vertx}"
-    compileTest "io.vertx:vertx-unit:${version_vertx}"
+    testCompile "io.vertx:vertx-unit:${version_vertx}"
 }
