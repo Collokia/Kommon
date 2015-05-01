@@ -1,4 +1,4 @@
-package com.collokia.kommon.konfig
+package org.collokia.kommon.konfig
 
 import com.typesafe.config.Config
 import java.nio.file.Path
