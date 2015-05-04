@@ -1,7 +1,7 @@
 description = 'Kommon'
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.2.1'
+    gradleVersion = '2.3'
 }
 
 if (rootProject != project) {
@@ -45,7 +45,6 @@ subprojects { sub ->
         compile "com.google.guava:guava:$version_guava"
 
         provided "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-        provided "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
         provided "org.slf4j:slf4j-api:$version_slf4j"
 
         testRuntime "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
@@ -63,10 +62,11 @@ subprojects { sub ->
     }
 
     repositories {
+        mavenCentral()
+        jcenter()
         maven {
             url 'https://collokia.artifactoryonline.com/collokia/collokia-oss'
         }
-        mavenCentral()
         maven {
             url 'http://oss.sonatype.org/content/repositories/snapshots'
         }
@@ -115,10 +115,11 @@ subprojects { sub ->
 
 buildscript {
     repositories {
+        mavenCentral()
+        jcenter()
         maven {
             url 'https://collokia.artifactoryonline.com/collokia/collokia-oss'
         }
-        mavenCentral()
         maven {
             url 'http://oss.sonatype.org/content/repositories/snapshots'
         }
