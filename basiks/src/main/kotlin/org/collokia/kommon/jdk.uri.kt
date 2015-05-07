@@ -1,7 +1,7 @@
 package org.collokia.kommon.jdk.uri
 
 import org.collokia.kommon.jdk.collections.isNotEmpty
-import org.collokia.kommon.jdk.strings.isNotTrimmedEmpty
+import org.collokia.kommon.jdk.strings.isNotBlank
 import org.collokia.kommon.jdk.strings.mustNotStartWith
 import org.collokia.kommon.jdk.strings.mustStartWith
 import org.collokia.kommon.jdk.uri.CorrectUrlDecoding
@@ -138,16 +138,16 @@ class UriBuilder(init: UriBuilder.() -> Unit = {}) {
         val actualPort = port ?: -1
         val uri = URI(scheme, userInfo, host, actualPort, null, null, null)
         val sb = StringBuilder()
-        if (encodedPath.isNotTrimmedEmpty()) {
+        if (encodedPath.isNotBlank()) {
             sb.append(encodedPath!!.mustStartWith('/'))
         }
         if (query.isNotEmpty()) {
             val queryString = queryMapToString(query)
-            if (queryString.isNotTrimmedEmpty()) {
+            if (queryString.isNotBlank()) {
                 sb.append('?').append(queryString!!.mustNotStartWith('?'))
             }
         }
-        if (fragment.isNotTrimmedEmpty()) {
+        if (fragment.isNotBlank()) {
             sb.append('#').append(fragment!!.mustNotStartWith('#'))
         }
         return uri.resolve(sb.toString())
@@ -162,7 +162,7 @@ private val utf8 = Charsets.UTF_8.name()
 
 private fun queryStringToMap(queryString: String?): Map<String, MutableList<String?>> {
     val query = LinkedHashMap<String, MutableList<String?>>()
-    if (queryString.isNotTrimmedEmpty()) {
+    if (queryString.isNotBlank()) {
         queryString?.split('&')?.forEach { keyValuePair ->
             val parts = keyValuePair.split("=", 2)
             val key = CorrectUrlDecoding.decodeQuery(parts[0].trim(), "UTF-8")
