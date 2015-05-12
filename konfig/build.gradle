@@ -2,4 +2,5 @@
 dependencies {
     compile relativeProject(":basiks")
     compile "com.typesafe:config:${version_typesafe_config}"
+    provided "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 }

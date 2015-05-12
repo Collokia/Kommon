@@ -6,7 +6,8 @@ dependencies {
     compile "io.vertx:vertx-rx:$version_vertx"
 
     compile "nl.mplatvoet.komponents:kovenant:$version_kovenant"
-    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+    provided "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    provided "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
 
     provided "io.vertx:vertx-hazelcast:$version_vertx"
     testCompile "io.vertx:vertx-unit:$version_vertx"

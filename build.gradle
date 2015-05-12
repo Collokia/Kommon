@@ -44,7 +44,6 @@ subprojects { sub ->
     dependencies {
         compile "com.google.guava:guava:$version_guava"
 
-        provided "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
         provided "org.slf4j:slf4j-api:$version_slf4j"
 
         testRuntime "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"

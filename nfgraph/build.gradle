@@ -2,4 +2,5 @@
 dependencies {
     compile relativeProject(":basiks")
     compile "com.netflix.nfgraph:netflix-graph:$version_nfgraph"
+    provided "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 }

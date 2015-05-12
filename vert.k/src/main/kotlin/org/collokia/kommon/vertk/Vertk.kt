@@ -3,6 +3,8 @@ package org.collokia.kommon.vertk
 import io.vertx.core.*
 import io.vertx.core.Context
 import nl.mplatvoet.komponents.kovenant.*
+import nl.mplatvoet.komponents.kovenant.Dispatcher as KovenantDispatcher
+import nl.mplatvoet.komponents.kovenant.Context as KovenantContext
 import kotlin.platform.platformName
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.java
@@ -15,28 +17,6 @@ public fun vertxCluster(options: VertxOptions): Promise<Vertx, Throwable> {
     return deferred.promise
 }
 public fun vertxContext(): Context = Vertx.currentContext()
-
-public fun vertxKovenantDispatcher(): Dispatcher {
-  return object : Dispatcher {
-      override val stopped: Boolean
-          get() = throw UnsupportedOperationException()
-      override val terminated: Boolean
-          get() = throw UnsupportedOperationException()
-
-      override fun offer(task: () -> Unit): Boolean {
-          throw UnsupportedOperationException()
-      }
-
-      override fun stop(force: Boolean, timeOutMs: Long, block: Boolean): List<() -> Unit> {
-          throw UnsupportedOperationException()
-      }
-
-      override fun tryCancel(task: () -> Unit): Boolean {
-          throw UnsupportedOperationException()
-      }
-
-  }
-}
 
 public fun Vertx.promiseDeployVerticle(verticle: Verticle): Promise<String, Throwable> {
     val deferred = deferred<String, Throwable>()
@@ -142,4 +122,37 @@ public fun <T> promiseResult(deferred: Deferred<T, Throwable>): (AsyncResult<T>)
     }
 }
 
+
+private fun KovenantContext.tryWork(fn: () -> Unit) = workerDispatcher.offer (fn, workerError)
+
+private fun KovenantDispatcher.offer(fn: () -> Unit, errorFn: (Exception) -> Unit) {
+    try {
+        this.offer(fn)
+    } catch (e: Exception) {
+        errorFn(e)
+    }
+}
+
+public fun <V, R> Promise<V, Throwable>.then(bind: (V) -> R): Promise<R, Throwable> {
+    val context = when (this) {
+        is ContextAware -> this.context
+        else -> Kovenant.context
+    }
+
+    val deferred = deferred<R, Throwable>(context)
+    success {
+        context.tryWork {
+            try {
+                val result = bind(it)
+                deferred.resolve(result)
+            } catch(e: Exception) {
+                deferred.reject(e)
+            }
+        }
+    }
+    fail {
+        deferred.reject(it)
+    }
+    return deferred.promise
+}
 
