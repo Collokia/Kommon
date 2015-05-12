@@ -16,13 +16,12 @@ import io.vertx.ext.apex.RoutingContext
 import io.vertx.ext.apex.handler.BodyHandler
 import io.vertx.ext.apex.handler.CookieHandler
 import io.vertx.ext.apex.handler.SessionHandler
-import io.vertx.ext.apex.sstore.ClusteredSessionStore
 import io.vertx.ext.apex.sstore.LocalSessionStore
 import jet.runtime.typeinfo.JetValueParameter
 import nl.mplatvoet.komponents.kovenant.async
 import org.collokia.kommon.jdk.strings.*
 import org.collokia.kommon.vertk.promiseDeployVerticle
-import org.collokia.kommon.vertk.*
+import org.collokia.kommon.vertk.vertx
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.reflections.Reflections
@@ -66,6 +65,7 @@ trait ContextFactory<T> {
 KapexController("/app/myform")
 object TestRoute : InterceptRequests, InterceptFailures, ContextFactory<TestRoute.TestContext> {
     override fun interceptRequest(target: KCallable<Any>) {
+        // TODO: make intercept requests work
         if (target == indexGet) {
             println("I know who this is!!")
         }
@@ -73,6 +73,7 @@ object TestRoute : InterceptRequests, InterceptFailures, ContextFactory<TestRout
     }
 
     override fun interceptFailures(target: KCallable<Any>) {
+        // TODO: make intercept failures work
         if (target == indexGet) {
             println("I know who this is!!")
         }
@@ -86,6 +87,11 @@ object TestRoute : InterceptRequests, InterceptFailures, ContextFactory<TestRout
     KapexRoute(HttpMethod.GET)
     val indexGet = fun TestContext.(xyz: Int, farf: Long): String {
         return "hello html"
+    }
+
+    KapexRoute(HttpMethod.GET, "with/:something/show")
+    val indexGetSomething = fun TestContext.(something: String): String {
+        return something
     }
 
     KapexRoute(HttpMethod.POST, "edit")
@@ -149,7 +155,7 @@ private object NullMask
 
 private fun Any.unmask(): Any? = if (this == NullMask) null else this
 
-public class KapexVerticle : AbstractVerticle() {
+public class KapexVerticle() : AbstractVerticle() {
     private val JSON = jacksonObjectMapper()
             .registerModule(JodaModule())
             .registerModule(GuavaModule())
@@ -160,7 +166,7 @@ public class KapexVerticle : AbstractVerticle() {
         [platformStatic]
         public fun main(args: Array<String>) {
             val vertx = vertx(VertxOptions().setWorkerPoolSize(Runtime.getRuntime().availableProcessors() * 2)) success { vertx ->
-                vertx.promiseDeployVerticle(KapexVerticle::class) success { deploymentId ->
+                vertx.promiseDeployVerticle(KapexVerticle()) success { deploymentId ->
                     println("Deployed as $deploymentId")
                 } fail { failureException ->
                     println("Failed due to $failureException")
@@ -284,15 +290,14 @@ public class KapexVerticle : AbstractVerticle() {
                 }
             }
 
-            router.route("/test").handler { context ->
-                context.response().putHeader("content-type", "text/html").end("Hello World!")
-            }
-
             vertx.createHttpServer().requestHandler { router.accept(it) }.listen(8080)
             vertx.createHttpServer(HttpServerOptions()
                     .setSsl(true)
                     .setKeyStoreOptions(JksOptions().setPath("/Users/jminard/DEV/Collokia/ssl/keystore/keystore.jks").setPassword("g00fball")))
                     .requestHandler { router.accept(it) }.listen(8443)
+
+            // TODO: set ready in countdown latch?
+            println("Server ready, listening on HTTP 8080 and HTTPS 8443")
         }
     }
 
@@ -348,12 +353,10 @@ public class KapexVerticle : AbstractVerticle() {
                     val contentType = routeContext.getAcceptableContentType() ?: producesContentType.nullIfBlank() ?: "application/json"
                     routeContext.response().putHeader("content-type", contentType).end(JSON.writeValueAsString(result))
                 }
-            }
-            catch (ex: InvocationTargetException) {
+            } catch (ex: InvocationTargetException) {
                 try {
-                   throw ex.getCause()
-                }
-                catch (redirect: KapexRedirect) {
+                    throw ex.getCause()
+                } catch (redirect: KapexRedirect) {
                     routeContext.response().putHeader("location", redirect.absolutePath(routeContext)).setStatusCode(302).end()
                 }
             }

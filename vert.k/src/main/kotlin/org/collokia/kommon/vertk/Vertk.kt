@@ -142,7 +142,7 @@ public fun <T> promiseResult(deferred: Deferred<T, Throwable>): (AsyncResult<T>)
     }
 }
 
-
+             /*
 private fun KovenantContext.tryWork(fn: () -> Unit) = workerDispatcher.offer (fn, workerError)
 
 private fun KovenantDispatcher.offer(fn: () -> Unit, errorFn: (Exception) -> Unit) {
@@ -176,3 +176,4 @@ public fun <V, R> Promise<V, Throwable>.then(bind: (V) -> R): Promise<R, Throwab
     return deferred.promise
 }
 
+         */
