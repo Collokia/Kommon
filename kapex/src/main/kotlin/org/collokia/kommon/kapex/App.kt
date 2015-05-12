@@ -6,25 +6,25 @@ import com.fasterxml.jackson.datatype.joda.JodaModule
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.vertx.core.AbstractVerticle
-import io.vertx.core.Vertx
 import io.vertx.core.VertxOptions
 import io.vertx.core.http.HttpMethod
 import io.vertx.core.http.HttpServerOptions
 import io.vertx.core.net.JksOptions
+import io.vertx.ext.apex.Route
 import io.vertx.ext.apex.Router
 import io.vertx.ext.apex.RoutingContext
 import io.vertx.ext.apex.handler.BodyHandler
 import io.vertx.ext.apex.handler.CookieHandler
 import io.vertx.ext.apex.handler.SessionHandler
 import io.vertx.ext.apex.sstore.ClusteredSessionStore
+import io.vertx.ext.apex.sstore.LocalSessionStore
 import jet.runtime.typeinfo.JetValueParameter
 import nl.mplatvoet.komponents.kovenant.async
-import org.collokia.kommon.jdk.strings.mustEndWith
-import org.collokia.kommon.jdk.strings.mustNotEndWith
-import org.collokia.kommon.jdk.strings.mustNotStartWith
-import org.collokia.kommon.jdk.strings.mustStartWith
+import org.collokia.kommon.jdk.strings.*
 import org.collokia.kommon.vertk.promiseDeployVerticle
+import org.collokia.kommon.vertk.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.reflections.Reflections
 import org.reflections.scanners.SubTypesScanner
 import org.reflections.scanners.TypeAnnotationsScanner
@@ -32,6 +32,8 @@ import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
 import java.lang.annotation.Target
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
@@ -88,8 +90,11 @@ object TestRoute : InterceptRequests, InterceptFailures, ContextFactory<TestRout
 
     KapexRoute(HttpMethod.POST, "edit")
     val editPost = fun TestContext.(xyz: Int, farf: Long) {
-        // must always throw a redirect to show
         throw KapexRedirect("/app/myform?xyz=${xyz}&farf=${farf}")
+    }
+
+    KapexRoute(HttpMethod.POST, "editError")
+    val editPostFailure = fun TestContext.(xyz: Int, farf: Long) {
     }
 
     KapexRoute(HttpMethod.GET, "edit")
@@ -97,14 +102,30 @@ object TestRoute : InterceptRequests, InterceptFailures, ContextFactory<TestRout
         return "hello html"
     }
 
+    KapexRoute(HttpMethod.GET, "json1", produces = "application/json")
+    val someJson1 = fun TestContext.(xyz: Int, farf: Long): TestDataClass {
+        return TestDataClass(xyz, farf)
+    }
+
+    KapexRoute(HttpMethod.GET, "json2")
+    val someJson2 = fun TestContext.(xyz: Int, farf: Long): TestDataClass {
+        return TestDataClass(xyz, farf)
+    }
+
     class TestContext(private val from: RoutingContext) {
 
     }
 
+    data class TestDataClass(val xyz: Int, val farf: Long, val created: DateTime = DateTime.now(DateTimeZone.UTC))
+
 }
 
-class KapexRedirect(val path: String) : Exception() {
 
+class KapexRedirect(val path: String) : Exception() {
+    fun absolutePath(forContext: RoutingContext): String {
+        // TODO: we need to build up a correct redirect URL to be happy
+        return path;
+    }
 }
 
 object ReflectionCache {
@@ -129,19 +150,28 @@ private object NullMask
 private fun Any.unmask(): Any? = if (this == NullMask) null else this
 
 public class KapexVerticle : AbstractVerticle() {
+    private val JSON = jacksonObjectMapper()
+            .registerModule(JodaModule())
+            .registerModule(GuavaModule())
+            .registerModule(JSR310Module())
+            .registerModule(Jdk8Module())
+
     companion object {
         [platformStatic]
         public fun main(args: Array<String>) {
-            val vertx = Vertx.vertx(VertxOptions().setWorkerPoolSize(Runtime.getRuntime().availableProcessors() * 2))
-            vertx.promiseDeployVerticle(KapexVerticle::class) success { deploymentId ->
-                println("Deployed as $deploymentId")
+            val vertx = vertx(VertxOptions().setWorkerPoolSize(Runtime.getRuntime().availableProcessors() * 2)) success { vertx ->
+                vertx.promiseDeployVerticle(KapexVerticle::class) success { deploymentId ->
+                    println("Deployed as $deploymentId")
+                } fail { failureException ->
+                    println("Failed due to $failureException")
+                }
             } fail { failureException ->
                 println("Failed due to $failureException")
             }
         }
     }
 
-    object EmptyContextFactory : ContextFactory<RoutingContext> {
+    private object EmptyContextFactory : ContextFactory<RoutingContext> {
         override fun createContext(from: RoutingContext): RoutingContext {
             return from
         }
@@ -149,14 +179,9 @@ public class KapexVerticle : AbstractVerticle() {
 
     override fun start() {
         async {
-            val JSON = jacksonObjectMapper()
-                    .registerModule(JodaModule())
-                    .registerModule(GuavaModule())
-                    .registerModule(JSR310Module())
-                    .registerModule(Jdk8Module())
             val router = Router.router(vertx)
             router.route().handler(CookieHandler.create())
-            router.route().handler(SessionHandler.create(ClusteredSessionStore.create(vertx)).setSessionTimeout(TimeUnit.HOURS.toMillis(12)))
+            router.route().handler(SessionHandler.create(LocalSessionStore.create(vertx)).setSessionTimeout(TimeUnit.HOURS.toMillis(12)).setNagHttps(false)) // TODO: if under a load balancer it might be secured to the front-end
 
             val reflections = Reflections(this.javaClass.getPackage(), SubTypesScanner(false), TypeAnnotationsScanner())
             val controllerClasses = reflections.getTypesAnnotatedWith(javaClass<KapexController>()) as  Set<Class<Any>>
@@ -211,15 +236,8 @@ public class KapexVerticle : AbstractVerticle() {
                                             val paramTypes = invokeMethod.getParameterTypes().drop(1)
                                             val paramNames = paramAnnotations.drop(1).map { it.filterIsInstance(javaClass<JetValueParameter>()).first().name() }
 
-                                            val simpleTypes = listOf(javaClass<Boolean>(), javaClass<Number>(), javaClass<String>(), javaClass<DateTime>(), javaClass<Date>())
-
-                                            [data] class ParamDef(val name: String, val type: Class<*>, val deser: (String?) -> Any?) {
-                                                val isComplexType = !simpleTypes.any { type.isAssignableFrom(it) }
-                                            }
-
-                                            val paramDefs = paramNames.zip(paramTypes).map { ParamDef(it.first, it.second, { it }) }
-                                            val paramCount = paramDefs.size()
-                                            val paramContainsComplex = paramDefs.any { it.isComplexType }
+                                            val paramDefs = paramNames.zip(paramTypes).map { ParamDef(it.first, it.second) }
+                                            val paramContainsComplex = paramDefs.none { isSimpleDataType(it.type) }
 
                                             val basePath = controllerAnnotation.path.mustStartWith('/').mustEndWith('/')
                                             val suffixPath = routeAnnotation.path.mustNotStartWith('/').mustNotEndWith('/')
@@ -239,40 +257,8 @@ public class KapexVerticle : AbstractVerticle() {
                                                 route.produces(routeAnnotation.produces)
                                             }
 
-                                            route.handler { routeContext ->
-                                                val requestContext = contextFactory.createContext(routeContext)
-
-                                                // need to bind each parameter, for each parameter
-                                                // if simple types, from path, then from query/form
-                                                // if not simple type, from body as JSON or multi-part form, or its fields from "name.valueName" type patterns
-
-                                                val request = routeContext.request()
-                                                val useValues = linkedListOf<Any?>()
-                                                paramDefs.forEach { param ->
-                                                    val paramValue: Any? = if (param.isComplexType) {
-                                                        if (request.isExpectMultipart()) {
-                                                            val parmPrefix = param.name + "."
-                                                            val tempMap = request.params().entries().filter { it.getKey().startsWith(parmPrefix) }.map { it.getKey().mustNotStartWith(parmPrefix) to it.getValue() }.toMap()
-                                                            if (tempMap.isEmpty()) {
-                                                                throw RuntimeException("cannot bind parameter ${param.name} from incoming form, require variables named ${parmPrefix}*")
-                                                            }
-                                                            JSON.convertValue(tempMap, param.type)
-                                                        } else {
-                                                            try {
-                                                                JSON.readValue(routeContext.getBodyAsString(), param.type)
-                                                            } catch (ex: Throwable) {
-                                                                throw RuntimeException("cannot bind parameter ${param.name} from incoming data, expected valid JSON.  Failed due to ${ex.getMessage()}", ex)
-                                                            }
-                                                        }
-                                                    } else {
-                                                        // TODO: how does this handl nulls?
-                                                        JSON.convertValue(request.getParam(param.name), param.type)
-                                                    }
-                                                    useValues.add(paramValue)
-                                                }
-
-                                                val result = invokeMethod.invoke(instance, useValues)
-                                            }
+                                            routeWithDatabinding(route, instance, memberFunction, invokeMethod, returnType, paramDefs, contextFactory,
+                                                    routeAnnotation.accepts, routeAnnotation.produces)
 
                                         } else {
                                             throw RuntimeException("Invalid property ${prop.name} on class ${controller.getCanonicalName()} has HTTP verb but cannot find an invokable function in the extension method synthesized class")
@@ -309,4 +295,75 @@ public class KapexVerticle : AbstractVerticle() {
                     .requestHandler { router.accept(it) }.listen(8443)
         }
     }
+
+    private fun routeWithDatabinding(route: Route, controllerInstance: Any?, memberFunctionObjectInstance: Any?,
+                                     memberFunctionInvokeMethod: Method, returnType: Class<*>,
+                                     paramDefs: List<ParamDef>, contextFactory: ContextFactory<*>,
+                                     acceptsContentType: String, producesContentType: String) {
+        route.handler { routeContext ->
+            val requestContext = contextFactory.createContext(routeContext)
+
+            val request = routeContext.request()
+            val useValues = linkedListOf<Any?>()
+            paramDefs.forEach { param ->
+                val paramValue: Any? = if (isSimpleDataType(param.type)) {
+                    // TODO: how does this handle nulls and missing params?
+                    JSON.convertValue(request.getParam(param.name), param.type)
+                } else {
+                    if (request.isExpectMultipart()) {
+                        val parmPrefix = param.name + "."
+                        val tempMap = request.params().entries().filter { it.getKey().startsWith(parmPrefix) }.map { it.getKey().mustNotStartWith(parmPrefix) to it.getValue() }.toMap()
+                        if (tempMap.isEmpty()) {
+                            throw RuntimeException("cannot bind parameter ${param.name} from incoming form, require variables named ${parmPrefix}*")
+                        }
+                        JSON.convertValue(tempMap, param.type)
+                    } else {
+                        try {
+                            JSON.readValue(routeContext.getBodyAsString(), param.type)
+                        } catch (ex: Throwable) {
+                            throw RuntimeException("cannot bind parameter ${param.name} from incoming data, expected valid JSON.  Failed due to ${ex.getMessage()}", ex)
+                        }
+                    }
+                }
+                useValues.add(paramValue)
+            }
+
+            useValues.addFirst(requestContext) // put the $receiver on the front
+            try {
+                val result = memberFunctionInvokeMethod.invoke(memberFunctionObjectInstance, *useValues.toArray())
+                if (returnType.getName() == "void") {
+                    throw RuntimeException("Failutre after invocation of route function:  A route without a return type must redirect.")
+                } else if (returnType.isAssignableFrom(javaClass<String>())) {
+                    val contentType = routeContext.getAcceptableContentType() ?: producesContentType.nullIfBlank() ?: "text/html"
+                    if (result == null) {
+                        throw RuntimeException("Handler did not return any content, only a null which for HTML doesn't really make sense.")
+                    }
+                    routeContext.response().putHeader("content-type", contentType).end(result as String)
+                } else {
+                    // at this point we really just need to make a JSON object because we have data not text
+
+                    // TODO: should we check if getAcceptableContentType() conflicts with application/json
+                    // TODO: should we check if the produces content type conflicts with application/json
+                    // TODO: we now return what they want as content type, but we are really creating JSON
+                    val contentType = routeContext.getAcceptableContentType() ?: producesContentType.nullIfBlank() ?: "application/json"
+                    routeContext.response().putHeader("content-type", contentType).end(JSON.writeValueAsString(result))
+                }
+            }
+            catch (ex: InvocationTargetException) {
+                try {
+                   throw ex.getCause()
+                }
+                catch (redirect: KapexRedirect) {
+                    routeContext.response().putHeader("location", redirect.absolutePath(routeContext)).setStatusCode(302).end()
+                }
+            }
+        }
+    }
+
+    [data] class ParamDef(val name: String, val type: Class<*>)
 }
+
+private fun isSimpleDataType(type: Class<*>) = simpleDataTypes.any { type.isAssignableFrom(it) } || simpleTypeNames.contains(type.getName())
+private val simpleDataTypes = listOf(javaClass<Boolean>(), javaClass<Number>(), javaClass<String>(), javaClass<DateTime>(), javaClass<Date>(),
+        javaClass<java.lang.Integer>(), javaClass<java.lang.Long>(), javaClass<java.lang.Float>(), javaClass<java.lang.Double>(), javaClass<java.lang.Boolean>())
+private val simpleTypeNames = setOf("int", "long", "float", "double", "boolean")

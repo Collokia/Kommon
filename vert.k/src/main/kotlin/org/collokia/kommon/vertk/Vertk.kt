@@ -9,8 +9,28 @@ import kotlin.platform.platformName
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.java
 
-public fun vertx(): Vertx = Vertx.vertx()
-public fun vertx(options: VertxOptions): Vertx = Vertx.vertx(options)
+public fun vertx(): Promise<Vertx, Throwable> {
+    val deferred = deferred<Vertx, Throwable>()
+    try {
+        deferred.resolve(Vertx.vertx())
+    }
+    catch (ex: Throwable) {
+        deferred.reject(ex)
+    }
+    return deferred.promise
+}
+
+public fun vertx(options: VertxOptions): Promise<Vertx, Throwable> {
+    val deferred = deferred<Vertx, Throwable>()
+    try {
+        deferred.resolve(Vertx.vertx(options))
+    }
+    catch (ex: Throwable) {
+        deferred.reject(ex)
+    }
+    return deferred.promise
+}
+
 public fun vertxCluster(options: VertxOptions): Promise<Vertx, Throwable> {
     val deferred = deferred<Vertx, Throwable>()
     Vertx.clusteredVertx(options, promiseResult(deferred))

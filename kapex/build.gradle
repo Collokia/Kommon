@@ -8,6 +8,7 @@ dependencies {
     compile "io.vertx:vertx-apex:$version_vertx"
     compile "io.vertx:vertx-auth-service:$version_vertx"
     compile "io.vertx:vertx-dropwizard-metrics:$version_vertx"
+    runtime "io.vertx:vertx-hazelcast:$version_vertx"
 
     compile "nl.mplatvoet.komponents:kovenant:$version_kovenant"
     compile "org.reflections:reflections:$version_reflections"
@@ -24,6 +25,7 @@ dependencies {
     compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$version_jackson"
     compile "com.fasterxml.jackson.module:jackson-module-kotlin:$version_jackson_kotlin"
 
-    provided "io.vertx:vertx-hazelcast:$version_vertx"
+    compile "joda-time:joda-time:$version_joda"
+
     testCompile "io.vertx:vertx-unit:$version_vertx"
 }
