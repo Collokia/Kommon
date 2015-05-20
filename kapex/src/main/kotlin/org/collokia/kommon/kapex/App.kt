@@ -5,6 +5,8 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.joda.JodaModule
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.hazelcast.config.Config
+import com.hazelcast.config.GroupConfig
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.VertxOptions
 import io.vertx.core.http.HttpMethod
@@ -16,17 +18,21 @@ import io.vertx.ext.apex.RoutingContext
 import io.vertx.ext.apex.handler.BodyHandler
 import io.vertx.ext.apex.handler.CookieHandler
 import io.vertx.ext.apex.handler.SessionHandler
+import io.vertx.ext.apex.sstore.ClusteredSessionStore
 import io.vertx.ext.apex.sstore.LocalSessionStore
+import io.vertx.spi.cluster.impl.hazelcast.HazelcastClusterManager
 import jet.runtime.typeinfo.JetValueParameter
 import nl.mplatvoet.komponents.kovenant.async
 import org.collokia.kommon.jdk.strings.*
 import org.collokia.kommon.vertk.promiseDeployVerticle
-import org.collokia.kommon.vertk.vertx
+import org.collokia.kommon.vertk.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.reflections.Reflections
 import org.reflections.scanners.SubTypesScanner
 import org.reflections.scanners.TypeAnnotationsScanner
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
@@ -39,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.platform.platformStatic
 import kotlin.reflect.KCallable
+import kotlin.reflect.KMemberProperty
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.kotlin
 
@@ -51,33 +58,40 @@ Target(ElementType.TYPE)
 annotation class KapexRoute(val verb: HttpMethod, val path: String = "", val accepts: String = "", val produces: String = "")
 
 trait InterceptRequests {
-    fun interceptRequest(target: KCallable<Any>)
+    fun interceptRequest(routingContext: RoutingContext)
+}
+
+trait InterceptDispatch<T> {
+    fun T.interceptDispatch(target: KMemberProperty<Any, *>)
+
+    final fun _internalDispatch(receiver: T, target: KMemberProperty<Any, *>) {
+        receiver.interceptDispatch(target)
+    }
 }
 
 trait InterceptFailures {
-    fun interceptFailures(target: KCallable<Any>)
+    fun interceptFailures(failureContext: RoutingContext)
 }
 
-trait ContextFactory<T> {
-    fun createContext(from: RoutingContext): T
+trait ContextFactory<T: Any> {
+    fun createContext(routingContext: RoutingContext): T
 }
 
 KapexController("/app/myform")
-object TestRoute : InterceptRequests, InterceptFailures, ContextFactory<TestRoute.TestContext> {
-    override fun interceptRequest(target: KCallable<Any>) {
-        // TODO: make intercept requests work
-        if (target == indexGet) {
-            println("I know who this is!!")
-        }
-        println("Intercept")
+object TestRoute : InterceptRequests, InterceptDispatch<TestRoute.TestContext>, InterceptFailures, ContextFactory<TestRoute.TestContext> {
+    override fun interceptRequest(routingContext: RoutingContext) {
+        println("Intercept Request")
     }
 
-    override fun interceptFailures(target: KCallable<Any>) {
-        // TODO: make intercept failures work
-        if (target == indexGet) {
-            println("I know who this is!!")
+    override fun TestContext.interceptDispatch(target: KMemberProperty<Any, *>) {
+        if (target == ::indexGet) {
+            println("first equal!!")
         }
-        println("Intercept")
+        println("Intercept Dispatch")
+    }
+
+    override fun interceptFailures(failureContext: RoutingContext) {
+        println("Intercept Failure")
     }
 
     override fun createContext(from: RoutingContext): TestContext {
@@ -114,12 +128,13 @@ object TestRoute : InterceptRequests, InterceptFailures, ContextFactory<TestRout
     }
 
     KapexRoute(HttpMethod.GET, "json2")
+   // FreemarkerTemplateView("mainPageTemplate.ftl", mapOf("innerTemplate" to "somethingElse.ftl"))
     val someJson2 = fun TestContext.(xyz: Int, farf: Long): TestDataClass {
         return TestDataClass(xyz, farf)
     }
 
-    class TestContext(private val from: RoutingContext) {
-
+    class TestContext(private val context: RoutingContext) {
+        val currentUser: String get() = context.session().get("userId")
     }
 
     data class TestDataClass(val xyz: Int, val farf: Long, val created: DateTime = DateTime.now(DateTimeZone.UTC))
@@ -165,7 +180,10 @@ public class KapexVerticle() : AbstractVerticle() {
     companion object {
         [platformStatic]
         public fun main(args: Array<String>) {
-            val vertx = vertx(VertxOptions().setWorkerPoolSize(Runtime.getRuntime().availableProcessors() * 2)) success { vertx ->
+            val vertxOptions = VertxOptions().setWorkerPoolSize(Runtime.getRuntime().availableProcessors() * 2)
+                                   .setClustered(true)
+                                   .setClusterManager(HazelcastClusterManager(Config().setGroupConfig(GroupConfig("dev-"+System.currentTimeMillis(), "1234"))))
+            val vertx = vertxCluster(vertxOptions) success { vertx ->
                 vertx.promiseDeployVerticle(KapexVerticle()) success { deploymentId ->
                     println("Deployed as $deploymentId")
                 } fail { failureException ->
@@ -187,7 +205,7 @@ public class KapexVerticle() : AbstractVerticle() {
         async {
             val router = Router.router(vertx)
             router.route().handler(CookieHandler.create())
-            router.route().handler(SessionHandler.create(LocalSessionStore.create(vertx)).setSessionTimeout(TimeUnit.HOURS.toMillis(12)).setNagHttps(false)) // TODO: if under a load balancer it might be secured to the front-end
+            router.route().handler(SessionHandler.create(ClusteredSessionStore.create(vertx)).setSessionTimeout(TimeUnit.HOURS.toMillis(12)).setNagHttps(false)) // TODO: if under a load balancer it might be secured to the front-end
 
             val reflections = Reflections(this.javaClass.getPackage(), SubTypesScanner(false), TypeAnnotationsScanner())
             val controllerClasses = reflections.getTypesAnnotatedWith(javaClass<KapexController>()) as  Set<Class<Any>>
@@ -196,6 +214,33 @@ public class KapexVerticle() : AbstractVerticle() {
                 val instance = controller.objectInstance()
                 if (instance != null) {
                     val controllerAnnotation = controller.getDeclaredAnnotation(javaClass<KapexController>())
+                    val controllerBasePath = controllerAnnotation.path.mustStartWith('/').mustEndWith('/')
+
+                    // interceptor of all requests under the controller
+                    if (instance is InterceptRequests) {
+                        router.route("$controllerBasePath*").handler { routeContext ->
+                            try {
+                                (instance as InterceptRequests).interceptRequest(routeContext)
+                                routeContext.next()
+                            } catch (redirect: KapexRedirect) {
+                                routeContext.response().putHeader("location", redirect.absolutePath(routeContext)).setStatusCode(302).end()
+                            }
+                        }
+                    }
+
+                    // interceptor of all failures under the controller
+                    if (instance is InterceptFailures) {
+                        router.route("$controllerBasePath*").failureHandler { failureContext ->
+                            try {
+                                (instance as InterceptFailures).interceptFailures(failureContext)
+                                failureContext.next()
+                            } catch (redirect: KapexRedirect) {
+                                failureContext.response().putHeader("location", redirect.absolutePath(failureContext)).setStatusCode(302).end()
+                            }
+                        }
+                    }
+
+                    // setup each action of the controller
                     controller.kotlin.properties.forEach { prop ->
                         if (prop.javaField != null) {
                             // TODO: check if this has a HTTP verb on it, if not ignore
@@ -245,9 +290,8 @@ public class KapexVerticle() : AbstractVerticle() {
                                             val paramDefs = paramNames.zip(paramTypes).map { ParamDef(it.first, it.second) }
                                             val paramContainsComplex = paramDefs.none { isSimpleDataType(it.type) }
 
-                                            val basePath = controllerAnnotation.path.mustStartWith('/').mustEndWith('/')
                                             val suffixPath = routeAnnotation.path.mustNotStartWith('/').mustNotEndWith('/')
-                                            val fullPath = (basePath + suffixPath).mustNotEndWith('/')
+                                            val fullPath = (controllerBasePath + suffixPath).mustNotEndWith('/')
 
                                             if (paramContainsComplex || (routeAnnotation.verb != HttpMethod.GET && routeAnnotation.verb != HttpMethod.HEAD)) {
                                                 // might get complex values from the body, so preload body in these cases for the same route
@@ -263,7 +307,7 @@ public class KapexVerticle() : AbstractVerticle() {
                                                 route.produces(routeAnnotation.produces)
                                             }
 
-                                            routeWithDatabinding(route, instance, memberFunction, invokeMethod, returnType, paramDefs, contextFactory,
+                                            routeWithDatabinding(route, instance, prop, memberFunction, invokeMethod, returnType, paramDefs, contextFactory,
                                                     routeAnnotation.accepts, routeAnnotation.produces)
 
                                         } else {
@@ -301,12 +345,15 @@ public class KapexVerticle() : AbstractVerticle() {
         }
     }
 
-    private fun routeWithDatabinding(route: Route, controllerInstance: Any?, memberFunctionObjectInstance: Any?,
+    private fun routeWithDatabinding(route: Route, controllerInstance: Any, memberProperty: KMemberProperty<Any, *>, memberFunctionObjectInstance: Any,
                                      memberFunctionInvokeMethod: Method, returnType: Class<*>,
                                      paramDefs: List<ParamDef>, contextFactory: ContextFactory<*>,
                                      acceptsContentType: String, producesContentType: String) {
         route.handler { routeContext ->
             val requestContext = contextFactory.createContext(routeContext)
+            if (controllerInstance is InterceptDispatch<*>) {
+                (controllerInstance as InterceptDispatch<Any>)._internalDispatch(requestContext, memberProperty)
+            }
 
             val request = routeContext.request()
             val useValues = linkedListOf<Any?>()
@@ -370,3 +417,5 @@ private fun isSimpleDataType(type: Class<*>) = simpleDataTypes.any { type.isAssi
 private val simpleDataTypes = listOf(javaClass<Boolean>(), javaClass<Number>(), javaClass<String>(), javaClass<DateTime>(), javaClass<Date>(),
         javaClass<java.lang.Integer>(), javaClass<java.lang.Long>(), javaClass<java.lang.Float>(), javaClass<java.lang.Double>(), javaClass<java.lang.Boolean>())
 private val simpleTypeNames = setOf("int", "long", "float", "double", "boolean")
+
+

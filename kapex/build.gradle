@@ -8,7 +8,7 @@ dependencies {
     compile "io.vertx:vertx-apex:$version_vertx"
     compile "io.vertx:vertx-auth-service:$version_vertx"
     compile "io.vertx:vertx-dropwizard-metrics:$version_vertx"
-    runtime "io.vertx:vertx-hazelcast:$version_vertx"
+    compile "io.vertx:vertx-hazelcast:$version_vertx"
 
     compile "nl.mplatvoet.komponents:kovenant:$version_kovenant"
     compile "org.reflections:reflections:$version_reflections"
