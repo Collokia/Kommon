@@ -34,11 +34,12 @@ subprojects { sub ->
 
     task javadocJar(type: Jar) {
         classifier = 'javadoc'
-        from javadoc.destinationDir
+        from kdoc.destinationDir
     }
-    javadocJar.dependsOn javadoc
+    javadocJar.dependsOn kdoc
 
-    build.dependsOn sourceJar, javadocJar
+
+    build.dependsOn sourceJar // , javadocJar
 
     //noinspection GroovyAssignabilityCheck
     dependencies {
@@ -96,9 +97,9 @@ subprojects { sub ->
                 artifact sourceJar {
                     classifier "sources"
                 }
-                artifact javadocJar {
-                    classifier "javadoc"
-                }
+            //    artifact javadocJar {
+            //        classifier "javadoc"
+            //    }
             }
         }
         repositories {
