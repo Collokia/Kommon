@@ -161,7 +161,7 @@ private val utf8 = Charsets.UTF_8.name()
 private fun queryStringToMap(queryString: String?): Map<String, MutableList<String?>> {
     val query = LinkedHashMap<String, MutableList<String?>>()
     if (!queryString.isNullOrBlank()) {
-        queryString?.split('&')?.forEach { keyValuePair ->
+        queryString?.split('&')?.filter{ it.isNotBlank() }?.forEach { keyValuePair ->
             val parts = keyValuePair.split('=').take(2)
             val key = CorrectUrlDecoding.decodeQuery(parts[0].trim(), "UTF-8")
             val value = if (parts.size() == 2) CorrectUrlDecoding.decodeQuery(parts[1].trim(), "UTF-8") else null
