@@ -78,10 +78,6 @@ public fun String.mustEndWith(postfix: Char): String {
   }
 }
 
-public fun String?.isNotBlank(): Boolean = !isBlank()
-public fun String?.isBlank(): Boolean = this == null || this.trim().isEmpty()
-public fun String?.isEmpty(): Boolean = !this.isNotEmpty()
-
 inline public fun String.whenStartsWith(prefix: String, thenWithRest: (String)->Unit): Boolean {
   if (this.startsWith(prefix)) {
     thenWithRest(this.exceptStarting(prefix.length()))
@@ -101,6 +97,5 @@ inline public fun String.whenStartsWith(prefixes: List<String>, thenWithRest: (S
   return false
 }
 
-public fun String?.nullIfBlank(): String? = if (this.isNotBlank()) this else null
-public fun String?.nullIfEmpty(): String? = if (this.isNotEmpty()) this else null
-public fun String?.emptyIfNull(): String = if (this == null) "" else this
+public fun String?.nullIfBlank(): String? = if (this.isNullOrBlank()) null else this
+public fun String?.nullIfEmpty(): String? = if (this.isNullOrEmpty()) null else this

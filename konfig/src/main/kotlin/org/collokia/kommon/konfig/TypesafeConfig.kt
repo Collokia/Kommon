@@ -19,8 +19,8 @@ public class ConfiguredValue(val cfg: Config, val key: String) {
     fun asInt(): Int = cfg.getInt(key)
     fun asStringList(): List<String> = cfg.getStringList(key)
     fun asIntList(): List<Int> = cfg.getIntList(key)
-    fun asStringArray(): Array<String> = cfg.getStringList(key).copyToArray()
-    fun asIntArray(): Array<Int> = cfg.getIntList(key).copyToArray()
+    fun asStringArray(): Array<String> = cfg.getStringList(key).toTypedArray()
+    fun asIntArray(): Array<Int> = cfg.getIntList(key).toTypedArray()
     fun asDefaultedStringList(default: List<String>): List<String> = if (exists()) asStringList() else default
     fun asDefaultedIntList(default: List<Int>): List<Int> = if (exists()) asIntList() else default
     fun asGuaranteedStringList(): List<String> = if (exists()) asStringList() else emptyList()

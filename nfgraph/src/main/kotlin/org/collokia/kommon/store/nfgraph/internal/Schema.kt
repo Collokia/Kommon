@@ -3,21 +3,21 @@ package org.collokia.kommon.store.nfgraph.internal
 import kotlin.properties.Delegates
 
 private enum class RelationCardinality(override val flags: Int) : GraphRelationOptions {
-    SINGLE : RelationCardinality(com.netflix.nfgraph.spec.NFPropertySpec.SINGLE)
-    MULTIPLE : RelationCardinality(com.netflix.nfgraph.spec.NFPropertySpec.MULTIPLE)
+    SINGLE(com.netflix.nfgraph.spec.NFPropertySpec.SINGLE),
+    MULTIPLE(com.netflix.nfgraph.spec.NFPropertySpec.MULTIPLE)
 }
 
 private enum class RelationScope(override val flags: Int) : GraphRelationOptions {
-    GLOBAL : RelationScope(com.netflix.nfgraph.spec.NFPropertySpec.GLOBAL)
-    MODEL : RelationScope(com.netflix.nfgraph.spec.NFPropertySpec.MODEL_SPECIFIC)
+    GLOBAL(com.netflix.nfgraph.spec.NFPropertySpec.GLOBAL),
+    MODEL(com.netflix.nfgraph.spec.NFPropertySpec.MODEL_SPECIFIC)
 }
 
 enum class RelationStructure(override val flags: Int) : GraphRelationOptions {
-    COMPACT : RelationStructure(com.netflix.nfgraph.spec.NFPropertySpec.COMPACT)
-    HASH : RelationStructure(com.netflix.nfgraph.spec.NFPropertySpec.HASH)
+    COMPACT(com.netflix.nfgraph.spec.NFPropertySpec.COMPACT),
+    HASH(com.netflix.nfgraph.spec.NFPropertySpec.HASH)
 }
 
-private trait GraphRelationOptions {
+private interface GraphRelationOptions {
     val flags: Int
 }
 

@@ -29,7 +29,7 @@ public fun Double.coerce(range: DoubleRange): Double = this.minimum(range.start)
 
 public fun Long.humanReadonable(): String {
     if (this <= 0) return "0"
-    val units = array("B", "KB", "MB", "GB", "TB", "EB")
+    val units = arrayOf("B", "KB", "MB", "GB", "TB", "EB")
     val digitGroups = (Math.log10(this.toDouble())/Math.log10(1024.0)).toInt();
     return DecimalFormat("#,##0.#").format(this/Math.pow(1024.0, digitGroups.toDouble())) + " " + units[digitGroups];
 }

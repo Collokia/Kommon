@@ -69,6 +69,7 @@ subprojects { sub ->
         maven {
             url 'http://oss.sonatype.org/content/repositories/snapshots'
         }
+        maven {url 'https://oss.sonatype.org/content/groups/staging'    }
     }
 
     //noinspection GroovyAssignabilityCheck

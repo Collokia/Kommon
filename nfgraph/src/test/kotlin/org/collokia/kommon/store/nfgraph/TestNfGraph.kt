@@ -12,18 +12,18 @@ import kotlin.test.assertTrue
 
 
 enum class MyNodes {
-    Movie
-    Actor
-    Director
+    Movie,
+    Actor,
+    Director,
     Award
 }
 
 enum class MyRelations {
-    StarredIn
-    Starring
-    DirectedBy
-    Directed
-    WonAward
+    StarredIn,
+    Starring,
+    DirectedBy,
+    Directed,
+    WonAward,
     AwardWinner
 }
 
@@ -32,7 +32,7 @@ public class TestNfGraph {
         return (this.size() == testFor.size() && this.containsAll(testFor))
     }
 
-    [Test] fun basicGraphBuilding() {
+    @Test fun basicGraphBuilding() {
         val schema = defineGraphSchema<MyNodes, MyRelations>(RelationStructure.COMPACT) {
             // TODO: maybe syntax like
             //    Movie[Starring]..Actor[StarredIn]

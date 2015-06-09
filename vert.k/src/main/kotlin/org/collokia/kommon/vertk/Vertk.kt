@@ -2,9 +2,9 @@ package org.collokia.kommon.vertk
 
 import io.vertx.core.*
 import io.vertx.core.Context
-import nl.mplatvoet.komponents.kovenant.*
-import nl.mplatvoet.komponents.kovenant.Dispatcher as KovenantDispatcher
-import nl.mplatvoet.komponents.kovenant.Context as KovenantContext
+import nl.komponents.kovenant.*
+import nl.komponents.kovenant.Dispatcher as KovenantDispatcher
+import nl.komponents.kovenant.Context as KovenantContext
 import kotlin.platform.platformName
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.java

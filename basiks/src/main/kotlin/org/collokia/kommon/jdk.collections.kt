@@ -1,3 +1,4 @@
 package org.collokia.kommon.jdk.collections
 
-public fun <K,V> Map<K,V>.isNotEmpty(): Boolean = !this.isEmpty()
+// M12 has this:
+// public fun <K,V> Map<K,V>.isNotEmpty(): Boolean = !this.isEmpty()

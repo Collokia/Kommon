@@ -24,13 +24,13 @@ class TestKt7721 {
 
     val member1 = fun (abc: String): String = abc
 
-    [Test] fun testKt7721_failure() {
+    @Test fun testKt7721_failure() {
         javaClass<TestKt7721>().kotlin.properties.filter { it.name == "member1" }.forEach { prop ->
             dispatchFailure(prop)
         }
     }
 
-    [Test] fun testKt7721_success() {
+    @Test fun testKt7721_success() {
         TestKt7721::class.properties.filter { it.name == "member1" }.forEach { prop ->
             dispatchFailure(prop)
         }

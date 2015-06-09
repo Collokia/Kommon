@@ -3,11 +3,11 @@ package org.collokia.kommon.json
 import java.util.*
 
 
-trait JsonElement {
+interface JsonElement {
     fun build(builder: StringBuilder)
 }
 
-public class JsonRoot internal (): JsonElement {
+public class JsonRoot internal constructor(): JsonElement {
     companion object {
         private fun json(body: JsonRoot.() -> Unit) : JsonRoot {
             val json = JsonRoot()
@@ -39,7 +39,7 @@ public class JsonRoot internal (): JsonElement {
     }
 }
 
-class JsonArray internal () : JsonElement {
+class JsonArray internal constructor() : JsonElement {
     private val elements = ArrayList<JsonElement>()
 
     fun add(value: JsonElement) = elements.add(value)
@@ -57,7 +57,7 @@ class JsonArray internal () : JsonElement {
     }
 }
 
-class JsonObject internal () : JsonElement {
+class JsonObject internal constructor() : JsonElement {
     private val properties = LinkedHashMap<String, JsonElement>()
     fun put(name: String, value: JsonElement) = properties.put(name, value)
 
@@ -81,7 +81,7 @@ class JsonObject internal () : JsonElement {
 }
 
 
-class JsonValue internal (val value: Any) : JsonElement {
+class JsonValue internal constructor(val value: Any) : JsonElement {
     override fun build(builder: StringBuilder) {
         when (value) {
             is Int -> builder.append(value)
@@ -92,7 +92,7 @@ class JsonValue internal (val value: Any) : JsonElement {
     }
 }
 
-class JsonRawValue internal (val rawJson: String) : JsonElement {
+class JsonRawValue internal constructor(val rawJson: String) : JsonElement {
     override fun build(builder: StringBuilder) {
         builder.append(rawJson)
     }

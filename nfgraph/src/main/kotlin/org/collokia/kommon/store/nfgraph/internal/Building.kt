@@ -77,7 +77,7 @@ public class CompiledGraphSchema<N : Enum<N>, R : Enum<R>>(val schema: GraphSche
                         }
                     }
                 }
-                graphSpec.addNodeSpec(NFNodeSpec(node.name(), *(propSpecs.copyToArray())))
+                graphSpec.addNodeSpec(NFNodeSpec(node.name(), *(propSpecs.toTypedArray())))
             }
         }
     }
@@ -213,7 +213,7 @@ class GraphBuilder<N : Enum<N>, R : Enum<R>>(val schema: CompiledGraphSchema<N, 
             ordinalsByType.forEach { entry ->
                 dataStream.writeUTF(entry.getKey().name())
                 dataStream.writeInt(entry.getValue().size())
-                entry.getValue().iterator().forEach { ordValue ->
+                entry.getValue().asSequence().forEach { ordValue ->
                     dataStream.writeUTF(ordValue)
                 }
             }

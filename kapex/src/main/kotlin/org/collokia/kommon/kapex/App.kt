@@ -12,17 +12,17 @@ import io.vertx.core.VertxOptions
 import io.vertx.core.http.HttpMethod
 import io.vertx.core.http.HttpServerOptions
 import io.vertx.core.net.JksOptions
-import io.vertx.ext.apex.Route
-import io.vertx.ext.apex.Router
-import io.vertx.ext.apex.RoutingContext
-import io.vertx.ext.apex.handler.BodyHandler
-import io.vertx.ext.apex.handler.CookieHandler
-import io.vertx.ext.apex.handler.SessionHandler
-import io.vertx.ext.apex.sstore.ClusteredSessionStore
-import io.vertx.ext.apex.sstore.LocalSessionStore
+import io.vertx.ext.web.Route
+import io.vertx.ext.web.Router
+import io.vertx.ext.web.RoutingContext
+import io.vertx.ext.web.handler.BodyHandler
+import io.vertx.ext.web.handler.CookieHandler
+import io.vertx.ext.web.handler.SessionHandler
+import io.vertx.ext.web.sstore.ClusteredSessionStore
+import io.vertx.ext.web.sstore.LocalSessionStore
 import io.vertx.spi.cluster.impl.hazelcast.HazelcastClusterManager
 import jet.runtime.typeinfo.JetValueParameter
-import nl.mplatvoet.komponents.kovenant.async
+import nl.komponents.kovenant.async
 import org.collokia.kommon.jdk.strings.*
 import org.collokia.kommon.vertk.promiseDeployVerticle
 import org.collokia.kommon.vertk.*
@@ -46,8 +46,10 @@ import java.util.concurrent.TimeUnit
 import kotlin.platform.platformStatic
 import kotlin.reflect.KCallable
 import kotlin.reflect.KMemberProperty
+import kotlin.reflect.jvm.java
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.kotlin
+import kotlin.reflect.jvm.kotlinPackage
 
 Retention(RetentionPolicy.RUNTIME)
 Target(ElementType.TYPE)
@@ -57,11 +59,11 @@ Retention(RetentionPolicy.RUNTIME)
 Target(ElementType.TYPE)
 annotation class KapexRoute(val verb: HttpMethod, val path: String = "", val accepts: String = "", val produces: String = "")
 
-trait InterceptRequests {
+interface InterceptRequests {
     fun interceptRequest(routingContext: RoutingContext)
 }
 
-trait InterceptDispatch<T> {
+interface InterceptDispatch<T> {
     fun T.interceptDispatch(target: KMemberProperty<Any, *>)
 
     final fun _internalDispatch(receiver: T, target: KMemberProperty<Any, *>) {
@@ -69,11 +71,11 @@ trait InterceptDispatch<T> {
     }
 }
 
-trait InterceptFailures {
+interface InterceptFailures {
     fun interceptFailures(failureContext: RoutingContext)
 }
 
-trait ContextFactory<T: Any> {
+interface ContextFactory<T: Any> {
     fun createContext(routingContext: RoutingContext): T
 }
 
@@ -94,8 +96,8 @@ object TestRoute : InterceptRequests, InterceptDispatch<TestRoute.TestContext>, 
         println("Intercept Failure")
     }
 
-    override fun createContext(from: RoutingContext): TestContext {
-        return TestContext(from)
+    override fun createContext(routingContext: RoutingContext): TestContext {
+        return TestContext(routingContext)
     }
 
     KapexRoute(HttpMethod.GET)
@@ -178,8 +180,7 @@ public class KapexVerticle() : AbstractVerticle() {
             .registerModule(Jdk8Module())
 
     companion object {
-        [platformStatic]
-        public fun main(args: Array<String>) {
+        platformStatic public fun main(args: Array<String>) {
             val vertxOptions = VertxOptions().setWorkerPoolSize(Runtime.getRuntime().availableProcessors() * 2)
                                    .setClustered(true)
                                    .setClusterManager(HazelcastClusterManager(Config().setGroupConfig(GroupConfig("dev-"+System.currentTimeMillis(), "1234"))))
@@ -196,8 +197,8 @@ public class KapexVerticle() : AbstractVerticle() {
     }
 
     private object EmptyContextFactory : ContextFactory<RoutingContext> {
-        override fun createContext(from: RoutingContext): RoutingContext {
-            return from
+        override fun createContext(routingContext: RoutingContext): RoutingContext {
+            return routingContext
         }
     }
 
@@ -220,7 +221,7 @@ public class KapexVerticle() : AbstractVerticle() {
                     if (instance is InterceptRequests) {
                         router.route("$controllerBasePath*").handler { routeContext ->
                             try {
-                                (instance as InterceptRequests).interceptRequest(routeContext)
+                                instance.interceptRequest(routeContext)
                                 routeContext.next()
                             } catch (redirect: KapexRedirect) {
                                 routeContext.response().putHeader("location", redirect.absolutePath(routeContext)).setStatusCode(302).end()
@@ -232,7 +233,7 @@ public class KapexVerticle() : AbstractVerticle() {
                     if (instance is InterceptFailures) {
                         router.route("$controllerBasePath*").failureHandler { failureContext ->
                             try {
-                                (instance as InterceptFailures).interceptFailures(failureContext)
+                                instance.interceptFailures(failureContext)
                                 failureContext.next()
                             } catch (redirect: KapexRedirect) {
                                 failureContext.response().putHeader("location", redirect.absolutePath(failureContext)).setStatusCode(302).end()
@@ -249,7 +250,7 @@ public class KapexVerticle() : AbstractVerticle() {
 
                             if (routeAnnotation != null) {
                                 val typeNameOfField = propJava.getType().getName()
-                                if (typeNameOfField.startsWith("kotlin.ExtensionFunction")) {
+                                if (typeNameOfField.startsWith((kotlin.jvm.functions.Function0::class.java).getName().mustNotEndWith("0"))) {
                                     val memberFunction = prop.get(instance)
                                     if (memberFunction != null) {
                                         val methods = memberFunction.javaClass.getMethods()
@@ -258,7 +259,7 @@ public class KapexVerticle() : AbstractVerticle() {
                                         if (invokeMethod != null) {
                                             val paramAnnotations = invokeMethod.getParameterAnnotations()
                                             val receiverName = paramAnnotations[0].first { it.annotationType() == javaClass<JetValueParameter>() } as JetValueParameter
-                                            if (receiverName.name() != "\$receiver") {
+                                            if (receiverName.name != "\$receiver") {
                                                 throw RuntimeException("Invalid property ${prop.name} on class ${controller.getCanonicalName()} has HTTP verb but cannot find an invokable function in the extension method synthesized class, with first \$receiver parameter")
                                             }
 
@@ -285,7 +286,7 @@ public class KapexVerticle() : AbstractVerticle() {
 
                                             val returnType = invokeMethod.getReturnType()
                                             val paramTypes = invokeMethod.getParameterTypes().drop(1)
-                                            val paramNames = paramAnnotations.drop(1).map { it.filterIsInstance(javaClass<JetValueParameter>()).first().name() }
+                                            val paramNames = paramAnnotations.drop(1).map { it.filterIsInstance(javaClass<JetValueParameter>()).first().name }
 
                                             val paramDefs = paramNames.zip(paramTypes).map { ParamDef(it.first, it.second) }
                                             val paramContainsComplex = paramDefs.none { isSimpleDataType(it.type) }
@@ -317,9 +318,6 @@ public class KapexVerticle() : AbstractVerticle() {
                                         throw RuntimeException("Invalid property ${prop.name} on class ${controller.getCanonicalName()} has HTTP verb but is not an extension function literal or pointer to one")
                                     }
                                 } else {
-                                    if (typeNameOfField.startsWith("kotlin.Function") || typeNameOfField.startsWith("kotlin.MemberFunction")) {
-                                        // TODO: also log message saying the function needs to be extension on a context object in case they just didn't know
-                                    }
                                     throw RuntimeException("Invalid property ${prop.name} on class ${controller.getCanonicalName()} has HTTP verb but is not an extension function on a context object")
                                 }
                             } else {
@@ -342,6 +340,8 @@ public class KapexVerticle() : AbstractVerticle() {
 
             // TODO: set ready in countdown latch?
             println("Server ready, listening on HTTP 8080 and HTTPS 8443")
+        }.fail {  ex ->
+            println("bad timing ${ex.getMessage()}")
         }
     }
 
@@ -410,10 +410,11 @@ public class KapexVerticle() : AbstractVerticle() {
         }
     }
 
-    [data] class ParamDef(val name: String, val type: Class<*>)
+    data class ParamDef(val name: String, val type: Class<*>)
 }
 
 private fun isSimpleDataType(type: Class<*>) = simpleDataTypes.any { type.isAssignableFrom(it) } || simpleTypeNames.contains(type.getName())
+// Intentionally using Java types here, not Kotlin
 private val simpleDataTypes = listOf(javaClass<Boolean>(), javaClass<Number>(), javaClass<String>(), javaClass<DateTime>(), javaClass<Date>(),
         javaClass<java.lang.Integer>(), javaClass<java.lang.Long>(), javaClass<java.lang.Float>(), javaClass<java.lang.Double>(), javaClass<java.lang.Boolean>())
 private val simpleTypeNames = setOf("int", "long", "float", "double", "boolean")
