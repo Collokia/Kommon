@@ -1,4 +1,4 @@
-package org.collokia.kommon.kapex.helper;
+package org.collokia.kommon.vertx.web.helper;
 
 import kotlin.reflect.jvm.internal.KClassImpl;
 import kotlin.reflect.jvm.internal.impl.descriptors.ClassDescriptor;

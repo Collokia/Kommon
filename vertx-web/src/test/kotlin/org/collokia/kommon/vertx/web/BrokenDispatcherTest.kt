@@ -1,4 +1,4 @@
-package org.collokia.kommon.kapex
+package org.collokia.kommon.web
 
 import org.junit.Test
 import kotlin.reflect.KMemberProperty

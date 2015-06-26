@@ -1,4 +1,4 @@
-package org.collokia.kommon.kapex
+package org.collokia.kommon.web
 
 import com.fasterxml.jackson.datatype.guava.GuavaModule
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
@@ -20,12 +20,12 @@ import io.vertx.ext.web.handler.CookieHandler
 import io.vertx.ext.web.handler.SessionHandler
 import io.vertx.ext.web.sstore.ClusteredSessionStore
 import io.vertx.ext.web.sstore.LocalSessionStore
-import io.vertx.spi.cluster.impl.hazelcast.HazelcastClusterManager
+import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager
 import jet.runtime.typeinfo.JetValueParameter
 import nl.komponents.kovenant.async
 import org.collokia.kommon.jdk.strings.*
-import org.collokia.kommon.vertk.promiseDeployVerticle
-import org.collokia.kommon.vertk.*
+import org.collokia.kommon.vertx.promiseDeployVerticle
+import org.collokia.kommon.vertx.*
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.reflections.Reflections
@@ -183,7 +183,7 @@ public class KapexVerticle() : AbstractVerticle() {
         platformStatic public fun main(args: Array<String>) {
             val vertxOptions = VertxOptions().setWorkerPoolSize(Runtime.getRuntime().availableProcessors() * 2)
                                    .setClustered(true)
-                                   .setClusterManager(HazelcastClusterManager(Config().setGroupConfig(GroupConfig("dev-"+System.currentTimeMillis(), "1234"))))
+                                   .setClusterManager(HazelcastClusterManager(Config().setGroupConfig(GroupConfig("dev-" + System.currentTimeMillis(), "1234"))))
             val vertx = vertxCluster(vertxOptions) success { vertx ->
                 vertx.promiseDeployVerticle(KapexVerticle()) success { deploymentId ->
                     println("Deployed as $deploymentId")

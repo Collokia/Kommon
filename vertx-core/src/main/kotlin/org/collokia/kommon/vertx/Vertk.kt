@@ -1,4 +1,4 @@
-package org.collokia.kommon.vertk
+package org.collokia.kommon.vertx
 
 import io.vertx.core.*
 import io.vertx.core.Context
