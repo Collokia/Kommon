@@ -1,3 +1,3 @@
 rootProject.name = 'kommon'
 
-include 'basiks', 'konfig', 'nfgraph', 'elastik', 'vert.k', 'kapex'
+include 'basiks', 'konfig', 'kgraph', 'elastik', 'vertx-core', 'vertx-web', 'kson'

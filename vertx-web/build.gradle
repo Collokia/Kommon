@@ -1,0 +1,33 @@
+group = "org.collokia.kotlin.kommon.vertx"
+
+//noinspection GroovyAssignabilityCheck
+dependencies {
+    compile relativeProject(":basiks")
+    compile relativeProject(":vertx-core")
+
+    compile "io.vertx:vertx-core:$version_vertx"
+    compile "io.vertx:vertx-rx:$version_vertx"
+    compile "io.vertx:vertx-web:$version_vertx"
+    compile "io.vertx:vertx-auth-common:$version_vertx"
+    compile "io.vertx:vertx-dropwizard-metrics:$version_vertx"
+    compile "io.vertx:vertx-hazelcast:$version_vertx"
+
+    compile "nl.komponents.kovenant:kovenant:$version_kovenant"
+    compile "org.reflections:reflections:$version_reflections"
+
+    // TODO: move to provided, they should already have kotlin!
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+
+    compile "com.google.guava:guava:$version_guava"
+    compile "com.fasterxml.jackson.core:jackson-databind:$version_jackson"
+    compile "com.fasterxml.jackson.datatype:jackson-datatype-joda:$version_jackson"
+    compile "com.fasterxml.jackson.datatype:jackson-datatype-guava:$version_jackson"
+    compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$version_jackson"
+    compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$version_jackson"
+    compile "com.fasterxml.jackson.module:jackson-module-kotlin:$version_jackson_kotlin"
+
+    compile "joda-time:joda-time:$version_joda"
+
+    testCompile "io.vertx:vertx-unit:$version_vertx"
+}

@@ -1,0 +1,17 @@
+group = "org.collokia.kotlin.kommon.vertx"
+
+//noinspection GroovyAssignabilityCheck
+dependencies {
+    compile relativeProject(":basiks")
+
+    compile "io.vertx:vertx-core:$version_vertx"
+    compile "io.vertx:vertx-rx:$version_vertx"
+    compile "com.fasterxml.jackson.core:jackson-databind:$version_jackson" // don't let vert.x pull in older version
+
+    compile "nl.komponents.kovenant:kovenant:$version_kovenant"
+    provided "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    provided "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+
+    provided "io.vertx:vertx-hazelcast:$version_vertx"
+    testCompile "io.vertx:vertx-unit:$version_vertx"
+}
