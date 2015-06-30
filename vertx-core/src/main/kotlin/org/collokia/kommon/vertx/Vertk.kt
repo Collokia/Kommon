@@ -12,7 +12,7 @@ import kotlin.reflect.jvm.java
 
 object VertxInit {
     init {
-        Kovenant.context = VertxKovenantContext()
+        Kovenant.context = VertxKovenantContext(Kovenant.context)
     }
 
     public inline fun ensure() {
@@ -55,7 +55,7 @@ public fun vertxCluster(options: VertxOptions): Promise<Vertx, Throwable> {
     Vertx.clusteredVertx(options, promiseResult(deferred))
     return deferred.promise
 }
-public fun vertxContext(): Context = Vertx.currentContext()
+public fun vertxContext(): Context? = Vertx.currentContext()
 
 public fun Vertx.promiseDeployVerticle(verticle: Verticle): Promise<String, Throwable> {
     VertxInit.ensure()
@@ -185,11 +185,26 @@ fun <T> promiseResult(deferred: Deferred<T, Throwable>): (AsyncResult<T>) -> Uni
 
 // -- part of Kovenant in the near future, connects the context of Kovenant promises to dispatch into Vert.x thread and context management.
 
-class VertxKovenantContext() : nl.komponents.kovenant.Context {
+class VertxKovenantContext(val originalContext: nl.komponents.kovenant.Context) : nl.komponents.kovenant.Context {
     override val callbackContext: DispatcherContext
-        get() = VertxCallbackDispatcherContext(vertxContext())
+        get() {
+            val currentVertxContext = vertxContext()
+            return if (currentVertxContext != null) {
+                VertxCallbackDispatcherContext(currentVertxContext)
+            }
+            else {
+                originalContext.callbackContext
+            }
+        }
     override val workerContext: DispatcherContext
-        get() = VertxWorkerDispatcherContext(vertxContext())
+        get() {
+            val currentVertxContext = vertxContext()
+            return if (currentVertxContext != null) {
+                VertxWorkerDispatcherContext(currentVertxContext)
+            } else {
+                originalContext.workerContext
+            }
+        }
 
     override val multipleCompletion: (Any, Any) -> Unit
         get() = { curVal: Any, newVal: Any -> throw IllegalStateException("Value[$curVal] is set, can't override with new value[$newVal]") }

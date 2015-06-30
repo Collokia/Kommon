@@ -1,4 +1,4 @@
-package org.collokia.kommon.web
+package org.collokia.kommon.vertx.web
 
 import com.fasterxml.jackson.datatype.guava.GuavaModule
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
