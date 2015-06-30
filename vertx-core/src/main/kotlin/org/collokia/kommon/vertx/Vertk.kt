@@ -12,10 +12,14 @@ import kotlin.reflect.jvm.java
 
 object VertxInit {
     init {
-       // Kovenant.context = VertxKovenantContext()
+        Kovenant.context = VertxKovenantContext()
     }
 
-    public inline fun ensure() {}
+    public inline fun ensure() {
+        // TODO: here to be sure we have intiailized anything related before using,
+        //       although this function may remain empty it causes initializers on the
+        //       object to run.
+    }
 }
 
 public fun vertx(): Promise<Vertx, Throwable> {
@@ -181,18 +185,17 @@ fun <T> promiseResult(deferred: Deferred<T, Throwable>): (AsyncResult<T>) -> Uni
 
 // -- part of Kovenant in the near future, connects the context of Kovenant promises to dispatch into Vert.x thread and context management.
 
-/*
-class VertxKovenantContext() : Context {
+class VertxKovenantContext() : nl.komponents.kovenant.Context {
     override val callbackContext: DispatcherContext
-        get() = VertxCallbackDispatcherContext(currentVertxContext()!!)
+        get() = VertxCallbackDispatcherContext(vertxContext())
     override val workerContext: DispatcherContext
-        get() = VertxWorkerDispatcherContext(currentVertxContext()!!)
+        get() = VertxWorkerDispatcherContext(vertxContext())
 
     override val multipleCompletion: (Any, Any) -> Unit
         get() = { curVal: Any, newVal: Any -> throw IllegalStateException("Value[$curVal] is set, can't override with new value[$newVal]") }
 }
 
-class VertxCallbackDispatcherContext(private val ctx: VertxContext) : DispatcherContext {
+class VertxCallbackDispatcherContext(private val ctx: Context) : DispatcherContext {
     override val dispatcher: Dispatcher
         get() = VertxCallbackDispatcher(ctx)
     override val errorHandler: (Exception) -> Unit
@@ -200,7 +203,7 @@ class VertxCallbackDispatcherContext(private val ctx: VertxContext) : Dispatcher
 
 }
 
-class VertxCallbackDispatcher(private val ctx: VertxContext) : BasicDispatcher() {
+class VertxCallbackDispatcher(private val ctx: Context) : BasicDispatcher() {
     override fun offer(task: () -> Unit): Boolean {
         ctx.runOnContext {
             task()
@@ -210,7 +213,7 @@ class VertxCallbackDispatcher(private val ctx: VertxContext) : BasicDispatcher()
 
 }
 
-class VertxWorkerDispatcherContext(private val ctx: VertxContext) : DispatcherContext {
+class VertxWorkerDispatcherContext(private val ctx: Context) : DispatcherContext {
     override val dispatcher: Dispatcher
         get() = VertxWorkerDispatcher(ctx)
     override val errorHandler: (Exception) -> Unit
@@ -218,9 +221,9 @@ class VertxWorkerDispatcherContext(private val ctx: VertxContext) : DispatcherCo
 
 }
 
-class VertxWorkerDispatcher(private val ctx: VertxContext) : BasicDispatcher() {
+class VertxWorkerDispatcher(private val ctx: Context) : BasicDispatcher() {
     override fun offer(task: () -> Unit): Boolean {
-        ctx.executeBlocking( {
+        ctx.owner().executeBlocking<Unit>( {
             task()
         }, null)
         return true
@@ -235,4 +238,3 @@ abstract class BasicDispatcher : Dispatcher {
     override val stopped: Boolean
         get() = throw UnsupportedOperationException()
 }
-*/
