@@ -11,8 +11,32 @@ import kotlin.reflect.jvm.java
 
 
 object VertxInit {
+    val fallbackContext = Kovenant.createContext {
+        workerContext.dispatcher {
+            name = "worker-fallback"
+            concurrentTasks = Runtime.getRuntime().availableProcessors()
+            pollStrategy {
+                //Some intermediate strategies
+                yielding(numberOfPolls = 1000)
+
+                //Make sure to block to keep the threads alive
+                blocking()
+            }
+        }
+
+
+        callbackContext.dispatcher {
+            name = "callback-fallback" //that has a nice ring to it too
+            concurrentTasks = 1
+            pollStrategy {
+                //Again, make sure to block to keep the threads alive
+                blocking()
+            }
+        }
+    }
+
     init {
-        Kovenant.context = VertxKovenantContext(Kovenant.context)
+        Kovenant.context = VertxKovenantContext(fallbackContext)
     }
 
     public inline fun ensure() {
