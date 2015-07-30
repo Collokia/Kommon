@@ -1,4 +1,0 @@
-//noinspection GroovyAssignabilityCheck
-dependencies {
-    provided "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-}
