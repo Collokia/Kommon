@@ -1,5 +1,0 @@
-
-
-dependencies {
-    compile "com.fasterxml.jackson.core:jackson-core:$version_jackson"
-}
