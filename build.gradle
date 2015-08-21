@@ -44,7 +44,7 @@ subprojects { sub ->
 
     //noinspection GroovyAssignabilityCheck
     dependencies {
-        compile "com.google.guava:guava:$version_guava"
+     //   compile "com.google.guava:guava:$version_guava"
 
         provided "org.slf4j:slf4j-api:$version_slf4j"
 
