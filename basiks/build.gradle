@@ -1,4 +1,5 @@
 //noinspection GroovyAssignabilityCheck
 dependencies {
+    compile "uy.klutter:klutter-core-jdk7:$version_klutter"
     provided "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 }
